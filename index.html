@@ -111,7 +111,7 @@ const L = {
       pick:'Введите товар и выберите код из подсказок',
       total:'ИТОГО платежей',rate:'Курс ЦБ',
       disc:'Ориентировочно. Точный расчёт с учётом акцизов, льгот и режима страны — в чате бота.',
-      terms:n=>n+' терминов',empty:'Ничего не найдено',need:'Укажите код и стоимость'},
+      terms:n=>n+' терминов',empty:'Ничего не найдено',need:'Укажите код и стоимость',tochat:'Оформить в чате бота'},
   uz:{calc:'💰 Hisob',code:'🔎 Kod',wiki:'📚 Viki',
       h_calc:'Bojxona to\'lovlarini hisoblash',h_code:'TIF TN kodini tanlash',h_wiki:'VED Vika — lug\'at',
       q_calc:'Tovar yoki TIF TN kodi…',q_code:'Tovarni ta\'riflang…',q_wiki:'Atama qidirish…',
@@ -120,7 +120,7 @@ const L = {
       pick:'Tovarni kiriting va kodni tanlang',
       total:'JAMI to\'lovlar',rate:'MB kursi',
       disc:'Taxminan. Aniq hisob — bot chatida.',
-      terms:n=>n+' ta atama',empty:'Hech narsa topilmadi',need:'Kod va qiymatni kiriting'},
+      terms:n=>n+' ta atama',empty:'Hech narsa topilmadi',need:'Kod va qiymatni kiriting',tochat:'Bot chatida rasmiylashtirish'},
   en:{calc:'💰 Calc',code:'🔎 Code',wiki:'📚 Wiki',
       h_calc:'Customs payment calculation',h_code:'Find HS code',h_wiki:'Trade Wiki — glossary',
       q_calc:'Product or HS code…',q_code:'Describe the product…',q_wiki:'Search a term…',
@@ -129,7 +129,7 @@ const L = {
       pick:'Enter a product and pick a code',
       total:'TOTAL payments',rate:'CB rate',
       disc:'Estimate. Exact calc with excise, exemptions and country regime — in the bot chat.',
-      terms:n=>n+' terms',empty:'Nothing found',need:'Enter code and value'}
+      terms:n=>n+' terms',empty:'Nothing found',need:'Enter code and value',tochat:'Open in bot chat'}
 }[lang];
 
 // подписи
@@ -174,8 +174,16 @@ c_go.onclick=async()=>{
   if(!/^\d{4,}$/.test(code)||!price){c_out.innerHTML='<div class="empty">'+L.need+'</div>';return}
   c_out.innerHTML='<div class="empty">…</div>';
   const r=await fetch(API+'/api/calc',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({code,price_usd:price,qty:parseFloat(c_qty.value)||0,has_certificate:c_cert.checked})});
+    body:JSON.stringify({code,price_usd:price,qty:parseFloat(c_qty.value)||0,has_certificate:c_cert.checked,
+      lang,initData:(tg&&tg.initData)||''})});
   const d=await r.json();
+  if(d.gated){
+    c_disc.textContent='';
+    c_out.innerHTML='<div class="card">'+(d.message||'')+
+      '<button class="go" id="c_pay" style="margin-top:12px">'+L.tochat+'</button></div>';
+    const pb=document.getElementById('c_pay'); if(pb) pb.onclick=()=>{ if(tg) tg.close(); };
+    return;
+  }
   const res=(d.result&&d.result.result_sum)||{};
   let h='<div class="card">';
   if(d.name) h+='<div class="hint">'+d.name.slice(0,80)+'</div>';
