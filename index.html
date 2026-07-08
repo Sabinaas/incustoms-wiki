@@ -140,11 +140,14 @@ c_price.placeholder=L.price; c_qty.placeholder=L.qty; c_cert_l.textContent=L.cer
 c_go.textContent=L.go; c_disc.textContent=''; c_picked.textContent=L.pick;
 
 // вкладки
-document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+function showTab(p){
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
   document.querySelectorAll('.pane').forEach(x=>x.classList.remove('on'));
-  t.classList.add('on'); document.getElementById('p'+t.dataset.p).classList.add('on');
-});
+  const t=document.querySelector('.tab[data-p="'+p+'"]'); const pane=document.getElementById('p'+p);
+  if(t&&pane){t.classList.add('on');pane.classList.add('on');}
+}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>showTab(t.dataset.p));
+const _it=params.get('tab'); if(['calc','code','wiki'].includes(_it)) showTab(_it);
 
 const fmt=n=>Math.round(n).toLocaleString('ru-RU').replace(/,/g,' ');
 const debounce=(f,ms)=>{let h;return(...a)=>{clearTimeout(h);h=setTimeout(()=>f(...a),ms)}};
