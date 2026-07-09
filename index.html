@@ -336,7 +336,9 @@ wrender('');
     const dp=params.get('price'); if(dp) c_price.value=dp;
     const dq=params.get('qty'); if(dq) c_qty.value=dq;
     if(params.get('cert')==='1') c_cert.checked=true;
-    if(dp) c_go.click();                       // есть цена → сразу считаем
+    // Авто-запуск только если явно не запрещён (run=0): мост-калькулятор префилит поля,
+    // но не запускает расчёт сам — чтобы не списать лишнюю попытку; пользователь жмёт сам.
+    if(dp && params.get('run')!=='0') c_go.click();
   }
 })();
 </script>
