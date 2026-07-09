@@ -319,6 +319,26 @@ function wrender(q){
 }
 w_q.oninput=()=>wrender(w_q.value);
 wrender('');
+
+// ---- МОСТ ИЗ ЧАТА (deep-link): префилл кода и авто-запуск нужной вкладки ----
+// ИИ в чате даёт ссылку вида ...?tab=perm&code=XXXX (или calc&code&price&qty&cert=1),
+// пользователь открывает Mini App и сразу видит богатый разбор.
+(function(){
+  const dcode=(params.get('code')||'').replace(/\s/g,'');
+  if(!dcode) return;
+  const dtab=params.get('tab');
+  if(dtab==='perm'){
+    p_q.value=dcode; p_picked.textContent='Код: '+dcode; permLoad(dcode);
+  } else if(dtab==='code'){
+    k_q.value=dcode; k_q.dispatchEvent(new Event('input'));
+  } else if(dtab==='calc'){
+    pickedCode=dcode; c_q.value=dcode; c_picked.textContent='Код: '+dcode;
+    const dp=params.get('price'); if(dp) c_price.value=dp;
+    const dq=params.get('qty'); if(dq) c_qty.value=dq;
+    if(params.get('cert')==='1') c_cert.checked=true;
+    if(dp) c_go.click();                       // есть цена → сразу считаем
+  }
+})();
 </script>
 </body>
 </html>
