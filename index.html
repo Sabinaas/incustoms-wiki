@@ -59,6 +59,7 @@
 <div class="tabs">
   <button class="tab on" data-p="calc" id="tcalc">💰 Расчёт</button>
   <button class="tab" data-p="code" id="tcode">🔎 Код</button>
+  <button class="tab" data-p="perm" id="tperm">📋 Док-ты</button>
   <button class="tab" data-p="wiki" id="twiki">📚 Вики</button>
 </div>
 
@@ -82,6 +83,15 @@
   <input id="k_q" placeholder="Опишите товар…" autocomplete="off">
   <div class="hint" id="k_cnt"></div>
   <div id="k_list"></div>
+</div>
+
+<!-- РАЗРЕШИТЕЛЬНЫЕ ДОКУМЕНТЫ -->
+<div class="pane" id="pperm">
+  <h2 id="h_perm">Разрешительные документы</h2>
+  <input id="p_q" placeholder="Товар или код ТН ВЭД…" autocomplete="off">
+  <div class="sug" id="p_sug" style="display:none"></div>
+  <div class="hint" id="p_picked"></div>
+  <div id="p_out"></div>
 </div>
 
 <!-- ВИКИ -->
@@ -111,7 +121,17 @@ const L = {
       pick:'Введите товар и выберите код из подсказок',
       total:'ИТОГО платежей',rate:'Курс ЦБ',
       disc:'Ориентировочно. Точный расчёт с учётом акцизов, льгот и режима страны — в чате бота.',
-      terms:n=>n+' терминов',empty:'Ничего не найдено',need:'Укажите код и стоимость',tochat:'Оформить в чате бота'},
+      terms:n=>n+' терминов',empty:'Ничего не найдено',need:'Укажите код и стоимость',tochat:'Оформить в чате бота',
+      perm:'📋 Док-ты',h_perm:'Разрешительные документы',q_perm:'Товар или код ТН ВЭД…',
+      p_pick:'Введите товар и выберите код из подсказок',
+      conf_t:'Подтверждение соответствия',sanit_t:'Санитарно-эпидемиологическое заключение',
+      mark_t:'Цифровая маркировка',req_t:'Дополнительные требования',
+      form_cert:'Обязательная сертификация (сертификат соответствия)',
+      form_decl:'Декларирование соответствия (декларация о соответствии)',
+      no_conf:'По перечням ПКМ-43 обязательное подтверждение соответствия не выявлено.',
+      not_found:'В перечнях разрешительных этот код не найден. Это НЕ значит, что ничего не нужно — сверьте точный 10-значный код или уточните в чате.',
+      perm_cav:'Сопоставление по группам ТН ВЭД — сверьте точный 10-значный код. Пустой блок ≠ «ничего не нужно». Точный перечень, № РУ и регистрацию (лекарства/медизделия) уточняйте в чате бота.',
+      src:'Источник'},
   uz:{calc:'💰 Hisob',code:'🔎 Kod',wiki:'📚 Viki',
       h_calc:'Bojxona to\'lovlarini hisoblash',h_code:'TIF TN kodini tanlash',h_wiki:'VED Vika — lug\'at',
       q_calc:'Tovar yoki TIF TN kodi…',q_code:'Tovarni ta\'riflang…',q_wiki:'Atama qidirish…',
@@ -120,7 +140,17 @@ const L = {
       pick:'Tovarni kiriting va kodni tanlang',
       total:'JAMI to\'lovlar',rate:'MB kursi',
       disc:'Taxminan. Aniq hisob — bot chatida.',
-      terms:n=>n+' ta atama',empty:'Hech narsa topilmadi',need:'Kod va qiymatni kiriting',tochat:'Bot chatida rasmiylashtirish'},
+      terms:n=>n+' ta atama',empty:'Hech narsa topilmadi',need:'Kod va qiymatni kiriting',tochat:'Bot chatida rasmiylashtirish',
+      perm:'📋 Hujjat',h_perm:'Ruxsat beruvchi hujjatlar',q_perm:'Tovar yoki TIF TN kodi…',
+      p_pick:'Tovarni kiriting va kodni tanlang',
+      conf_t:'Muvofiqlikni tasdiqlash',sanit_t:'Sanitariya-epidemiologik xulosa',
+      mark_t:'Raqamli markirovka',req_t:'Qo\'shimcha talablar',
+      form_cert:'Majburiy sertifikatlash (muvofiqlik sertifikati)',
+      form_decl:'Muvofiqlikni deklaratsiyalash (muvofiqlik deklaratsiyasi)',
+      no_conf:'VM 43-son ro\'yxatlari bo\'yicha majburiy tasdiqlash aniqlanmadi.',
+      not_found:'Bu kod ruxsat ro\'yxatlarida topilmadi. Bu hech narsa kerak emas degani EMAS — aniq 10 xonali kodni tekshiring yoki chatda so\'rang.',
+      perm_cav:'TIF TN guruhlari bo\'yicha taqqoslash — aniq 10 xonali kodni tekshiring. Bo\'sh blok «hech narsa kerak emas» degani emas. Aniq ro\'yxat, RG raqami va ro\'yxatdan o\'tkazishni bot chatida aniqlang.',
+      src:'Manba'},
   en:{calc:'💰 Calc',code:'🔎 Code',wiki:'📚 Wiki',
       h_calc:'Customs payment calculation',h_code:'Find HS code',h_wiki:'Trade Wiki — glossary',
       q_calc:'Product or HS code…',q_code:'Describe the product…',q_wiki:'Search a term…',
@@ -129,15 +159,25 @@ const L = {
       pick:'Enter a product and pick a code',
       total:'TOTAL payments',rate:'CB rate',
       disc:'Estimate. Exact calc with excise, exemptions and country regime — in the bot chat.',
-      terms:n=>n+' terms',empty:'Nothing found',need:'Enter code and value',tochat:'Open in bot chat'}
+      terms:n=>n+' terms',empty:'Nothing found',need:'Enter code and value',tochat:'Open in bot chat',
+      perm:'📋 Docs',h_perm:'Required permits & documents',q_perm:'Product or HS code…',
+      p_pick:'Enter a product and pick a code',
+      conf_t:'Conformity assessment',sanit_t:'Sanitary-epidemiological certificate',
+      mark_t:'Digital marking',req_t:'Additional requirements',
+      form_cert:'Mandatory certification (certificate of conformity)',
+      form_decl:'Declaration of conformity',
+      no_conf:'No mandatory conformity assessment found in the PKM-43 lists.',
+      not_found:'This code is not in the permit lists. That does NOT mean nothing is required — verify the exact 10-digit code or ask in the chat.',
+      perm_cav:'Matched by HS groups — verify the exact 10-digit code. An empty block does not mean “nothing is required”. Confirm the exact list, registration number and drug/device registration in the bot chat.',
+      src:'Source'}
 }[lang];
 
 // подписи
-tcalc.textContent=L.calc; tcode.textContent=L.code; twiki.textContent=L.wiki;
-h_calc.textContent=L.h_calc; h_code.textContent=L.h_code; h_wiki.textContent=L.h_wiki;
-c_q.placeholder=L.q_calc; k_q.placeholder=L.q_code; w_q.placeholder=L.q_wiki;
+tcalc.textContent=L.calc; tcode.textContent=L.code; tperm.textContent=L.perm; twiki.textContent=L.wiki;
+h_calc.textContent=L.h_calc; h_code.textContent=L.h_code; h_perm.textContent=L.h_perm; h_wiki.textContent=L.h_wiki;
+c_q.placeholder=L.q_calc; k_q.placeholder=L.q_code; p_q.placeholder=L.q_perm; w_q.placeholder=L.q_wiki;
 c_price.placeholder=L.price; c_qty.placeholder=L.qty; c_cert_l.textContent=L.cert;
-c_go.textContent=L.go; c_disc.textContent=''; c_picked.textContent=L.pick;
+c_go.textContent=L.go; c_disc.textContent=''; c_picked.textContent=L.pick; p_picked.textContent=L.p_pick;
 
 // вкладки
 function showTab(p){
@@ -147,7 +187,7 @@ function showTab(p){
   if(t&&pane){t.classList.add('on');pane.classList.add('on');}
 }
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>showTab(t.dataset.p));
-const _it=params.get('tab'); if(['calc','code','wiki'].includes(_it)) showTab(_it);
+const _it=params.get('tab'); if(['calc','code','perm','wiki'].includes(_it)) showTab(_it);
 
 const fmt=n=>Math.round(n).toLocaleString('ru-RU').replace(/,/g,' ');
 const debounce=(f,ms)=>{let h;return(...a)=>{clearTimeout(h);h=setTimeout(()=>f(...a),ms)}};
@@ -220,6 +260,49 @@ k_q.oninput=debounce(async()=>{
     }
   });
 },250);
+
+// ---- РАЗРЕШИТЕЛЬНЫЕ ----
+const esc=s=>(s||'').replace(/</g,'&lt;');
+async function permLoad(code){
+  p_out.innerHTML='<div class="empty">…</div>';
+  const d=await api('/api/permits?code='+encodeURIComponent(code));
+  let h='<div class="card">';
+  if(d.name) h+='<div class="hint">'+esc(d.name).slice(0,90)+'</div>';
+  // Подтверждение соответствия
+  h+='<div class="line"><span>'+L.conf_t+'</span><b>'+
+     (d.conformity ? (d.conformity.form_key==='cert'?L.form_cert:d.conformity.form_key==='declaration'?L.form_decl:esc(d.conformity.form_ru))
+                   : '—')+'</b></div>';
+  if(!d.conformity) h+='<div class="hint">'+L.no_conf+'</div>';
+  // Сан-эпид
+  if(d.sanitary) h+='<div class="line"><span>'+L.sanit_t+'</span><b>✔</b></div>';
+  // Маркировка
+  if(d.marking) h+='<div class="line"><span>'+L.mark_t+'</span><b>'+esc(d.marking.requirement||'✔')+
+     '</b></div><div class="hint">'+esc(d.marking.npa||'')+(d.marking.since?' · '+esc(d.marking.since):'')+'</div>';
+  // Доп. требования из актов
+  if(d.requirements&&d.requirements.length){
+    h+='<div class="line total" style="font-size:15px"><span>'+L.req_t+'</span><span></span></div>';
+    d.requirements.forEach(r=>{ h+='<div class="line"><span>'+esc(r.permit)+'</span><b class="sec">'+esc(r.npa)+'</b></div>'; });
+  }
+  if(!d.found) h+='<div class="hint">'+L.not_found+'</div>';
+  h+='</div>';
+  h+='<div class="hint">'+L.perm_cav+'</div>';
+  h+='<div class="hint">'+L.src+': '+esc(d.source||'')+'</div>';
+  p_out.innerHTML=h;
+}
+let pPicked=null;
+const psug=debounce(async()=>{
+  const q=p_q.value.trim();
+  if(/^\d[\d\s]{3,}$/.test(q)){pPicked=q.replace(/\s/g,'');p_sug.style.display='none';permLoad(pPicked);return}
+  if(q.length<2){p_sug.style.display='none';return}
+  const d=await api('/api/search?q='+encodeURIComponent(q));
+  p_sug.innerHTML=d.items.slice(0,6).map(i=>`<div data-c="${i.code}">${i.code} — ${esc(i.name).slice(0,60)}</div>`).join('');
+  p_sug.style.display=d.items.length?'block':'none';
+  p_sug.querySelectorAll('div').forEach(el=>el.onclick=()=>{
+    pPicked=el.dataset.c; p_q.value=el.dataset.c; p_picked.textContent='Код: '+el.dataset.c;
+    p_sug.style.display='none'; permLoad(pPicked);
+  });
+},250);
+p_q.oninput=psug;
 
 // ---- ВИКИ ----
 const witems=WIKI.filter(d=>d.l===lang);
