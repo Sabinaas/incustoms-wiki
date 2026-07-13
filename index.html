@@ -130,7 +130,7 @@ const L = {
       cert:'Есть сертификат происхождения (СТ-1/форма А)',go:'Рассчитать',
       pick:'Введите товар и выберите код из подсказок',
       transport:'Транспорт до границы РУз, USD',insurance:'Страховка, USD (если была)',
-      inco:[['CIF','CIF / CIP — фрахт и страховка включены'],['CFR','CFR / CPT — фрахт включён, страховка нет'],['FOB','FOB / FCA / EXW — без фрахта и страховки'],['DAP','DAP / DDP / DPU — доставка включена']],
+      inco:[['EXW','EXW — самовывоз, все расходы на покупателе'],['FCA','FCA — передача перевозчику, фрахт на покупателе'],['FAS','FAS — вдоль борта судна, фрахт на покупателе'],['FOB','FOB — на борту судна, фрахт на покупателе'],['CFR','CFR — фрахт включён, страховка нет'],['CIF','CIF — фрахт и страховка включены'],['CPT','CPT — перевозка включена, страховка нет'],['CIP','CIP — перевозка и страховка включены'],['DAP','DAP — доставка до места (без выгрузки)'],['DPU','DPU — доставка с выгрузкой'],['DDP','DDP — доставка с оплатой пошлин']],
       inco_h:'Таможенная стоимость = инвойс + транспорт до границы + страховка (то, что ещё не в цене по Incoterms).',
       cust:'Таможенная стоимость',
       util_h:'🚗 Утилизационный сбор (для транспорта)',
@@ -158,7 +158,7 @@ const L = {
       cert:'Kelib chiqish sertifikati bor (ST-1/A shakli)',go:'Hisoblash',
       pick:'Tovarni kiriting va kodni tanlang',
       transport:'RUz chegarasigacha transport, USD',insurance:'Sug\'urta, USD (agar bo\'lsa)',
-      inco:[['CIF','CIF / CIP — fraxt va sug\'urta kiritilgan'],['CFR','CFR / CPT — fraxt bor, sug\'urta yo\'q'],['FOB','FOB / FCA / EXW — fraxt va sug\'urtasiz'],['DAP','DAP / DDP / DPU — yetkazib berish kiritilgan']],
+      inco:[['EXW','EXW — o\'zi olib ketish, barcha xarajat xaridorda'],['FCA','FCA — tashuvchiga topshirish, fraxt xaridorda'],['FAS','FAS — kema yonida, fraxt xaridorda'],['FOB','FOB — kema bortida, fraxt xaridorda'],['CFR','CFR — fraxt bor, sug\'urta yo\'q'],['CIF','CIF — fraxt va sug\'urta kiritilgan'],['CPT','CPT — tashish bor, sug\'urta yo\'q'],['CIP','CIP — tashish va sug\'urta kiritilgan'],['DAP','DAP — joyga yetkazish (tushirishsiz)'],['DPU','DPU — tushirish bilan yetkazish'],['DDP','DDP — boj to\'lab yetkazish']],
       inco_h:'Bojxona qiymati = invoys + chegaragacha transport + sug\'urta (Incoterms bo\'yicha narxda yo\'q qismi).',
       cust:'Bojxona qiymati',
       util_h:'🚗 Utilizatsiya yig\'imi (transport uchun)',
@@ -186,7 +186,7 @@ const L = {
       cert:'Origin certificate available (ST-1/Form A)',go:'Calculate',
       pick:'Enter a product and pick a code',
       transport:'Freight to Uzbek border, USD',insurance:'Insurance, USD (if any)',
-      inco:[['CIF','CIF / CIP — freight & insurance included'],['CFR','CFR / CPT — freight included, no insurance'],['FOB','FOB / FCA / EXW — no freight/insurance'],['DAP','DAP / DDP / DPU — delivery included']],
+      inco:[['EXW','EXW — ex works, buyer bears all costs'],['FCA','FCA — free carrier, buyer pays freight'],['FAS','FAS — free alongside ship, buyer pays freight'],['FOB','FOB — free on board, buyer pays freight'],['CFR','CFR — freight included, no insurance'],['CIF','CIF — freight & insurance included'],['CPT','CPT — carriage included, no insurance'],['CIP','CIP — carriage & insurance included'],['DAP','DAP — delivered at place (not unloaded)'],['DPU','DPU — delivered unloaded'],['DDP','DDP — delivered duty paid']],
       inco_h:'Customs value = invoice + freight to border + insurance (whatever is not yet in the price per Incoterms).',
       cust:'Customs value',
       util_h:'🚗 Recycling fee (for vehicles)',
@@ -217,14 +217,18 @@ c_price.placeholder=L.price; c_qty.placeholder=L.qty; c_cert_l.textContent=L.cer
 c_go.textContent=L.go; c_disc.textContent=''; c_picked.textContent=L.pick; p_picked.textContent=L.p_pick;
 c_transport.placeholder=L.transport; c_ins.placeholder=L.insurance; c_inco_h.textContent=L.inco_h;
 c_inco.innerHTML=L.inco.map(o=>`<option value="${o[0]}">${o[1]}</option>`).join('');
-// показ «Транспорт»/«Страховка» по условиям поставки (что ещё не в цене → добавляем к тамож. стоимости)
-const _incoRule={CIF:[false,false],CFR:[false,true],FOB:[true,true],DAP:[false,false]};
+// показ «Транспорт»/«Страховка» по условию поставки: [нужен транспорт, нужна страховка].
+// EXW/FCA/FAS/FOB — перевозка и страховка на покупателе; CFR/CPT — только страховка;
+// CIF/CIP/DAP/DPU/DDP — всё уже в цене (ничего не добавляем).
+const _incoRule={EXW:[true,true],FCA:[true,true],FAS:[true,true],FOB:[true,true],
+  CFR:[false,true],CPT:[false,true],
+  CIF:[false,false],CIP:[false,false],DAP:[false,false],DPU:[false,false],DDP:[false,false]};
 function incoUpd(){
   const r=_incoRule[c_inco.value]||[false,false];
   c_transport.style.display=r[0]?'block':'none'; if(!r[0]) c_transport.value='';
   c_ins.style.display=r[1]?'block':'none'; if(!r[1]) c_ins.value='';
 }
-c_inco.onchange=incoUpd; incoUpd();
+c_inco.value='CIF'; c_inco.onchange=incoUpd; incoUpd();  // дефолт CIF — без доп. полей
 
 // --- Утилизационный сбор: блок виден только для транспортных кодов (8701–8705, 8716) ---
 c_util_h.textContent=L.util_h;
