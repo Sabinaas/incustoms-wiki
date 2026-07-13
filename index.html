@@ -69,7 +69,11 @@
   <input id="c_q" placeholder="Товар или код ТН ВЭД…" autocomplete="off">
   <div class="sug" id="c_sug" style="display:none"></div>
   <div class="hint" id="c_picked"></div>
-  <input id="c_price" type="number" inputmode="decimal" placeholder="Стоимость (CIF), USD">
+  <input id="c_price" type="number" inputmode="decimal" placeholder="Стоимость по инвойсу, USD">
+  <select id="c_inco"></select>
+  <input id="c_transport" type="number" inputmode="decimal" placeholder="Транспорт до границы РУз, USD" style="display:none">
+  <input id="c_ins" type="number" inputmode="decimal" placeholder="Страховка, USD (если была)" style="display:none">
+  <div class="hint" id="c_inco_h"></div>
   <input id="c_qty" type="number" inputmode="decimal" placeholder="Кол-во в единице ставки (для $/шт, $/кг, $/см³) — необязательно">
   <label class="row"><input type="checkbox" id="c_cert"><span id="c_cert_l">Есть сертификат происхождения (СТ-1/форма А)</span></label>
   <button class="go" id="c_go">Рассчитать</button>
@@ -116,9 +120,13 @@ const L = {
   ru:{calc:'💰 Расчёт',code:'🔎 Код',wiki:'📚 Вики',
       h_calc:'Расчёт таможенных платежей',h_code:'Подбор кода ТН ВЭД',h_wiki:'ВЭД Вики — словарь',
       q_calc:'Товар или код ТН ВЭД…',q_code:'Опишите товар…',q_wiki:'Поиск термина…',
-      price:'Стоимость (CIF), USD',qty:'Кол-во в единице ставки — необязательно',
+      price:'Стоимость по инвойсу, USD',qty:'Кол-во в единице ставки — необязательно',
       cert:'Есть сертификат происхождения (СТ-1/форма А)',go:'Рассчитать',
       pick:'Введите товар и выберите код из подсказок',
+      transport:'Транспорт до границы РУз, USD',insurance:'Страховка, USD (если была)',
+      inco:[['CIF','CIF / CIP — фрахт и страховка включены'],['CFR','CFR / CPT — фрахт включён, страховка нет'],['FOB','FOB / FCA / EXW — без фрахта и страховки'],['DAP','DAP / DDP / DPU — доставка включена']],
+      inco_h:'Таможенная стоимость = инвойс + транспорт до границы + страховка (то, что ещё не в цене по Incoterms).',
+      cust:'Таможенная стоимость',
       total:'ИТОГО платежей',rate:'Курс ЦБ',
       disc:'Ориентировочно. Точный расчёт с учётом акцизов, льгот и режима страны — в чате бота.',
       terms:n=>n+' терминов',empty:'Ничего не найдено',need:'Укажите код и стоимость',tochat:'Оформить в чате бота',
@@ -135,9 +143,13 @@ const L = {
   uz:{calc:'💰 Hisob',code:'🔎 Kod',wiki:'📚 Viki',
       h_calc:'Bojxona to\'lovlarini hisoblash',h_code:'TIF TN kodini tanlash',h_wiki:'VED Vika — lug\'at',
       q_calc:'Tovar yoki TIF TN kodi…',q_code:'Tovarni ta\'riflang…',q_wiki:'Atama qidirish…',
-      price:'Qiymati (CIF), USD',qty:'Stavka birligidagi miqdor — ixtiyoriy',
+      price:'Invoys qiymati, USD',qty:'Stavka birligidagi miqdor — ixtiyoriy',
       cert:'Kelib chiqish sertifikati bor (ST-1/A shakli)',go:'Hisoblash',
       pick:'Tovarni kiriting va kodni tanlang',
+      transport:'RUz chegarasigacha transport, USD',insurance:'Sug\'urta, USD (agar bo\'lsa)',
+      inco:[['CIF','CIF / CIP — fraxt va sug\'urta kiritilgan'],['CFR','CFR / CPT — fraxt bor, sug\'urta yo\'q'],['FOB','FOB / FCA / EXW — fraxt va sug\'urtasiz'],['DAP','DAP / DDP / DPU — yetkazib berish kiritilgan']],
+      inco_h:'Bojxona qiymati = invoys + chegaragacha transport + sug\'urta (Incoterms bo\'yicha narxda yo\'q qismi).',
+      cust:'Bojxona qiymati',
       total:'JAMI to\'lovlar',rate:'MB kursi',
       disc:'Taxminan. Aniq hisob — bot chatida.',
       terms:n=>n+' ta atama',empty:'Hech narsa topilmadi',need:'Kod va qiymatni kiriting',tochat:'Bot chatida rasmiylashtirish',
@@ -154,9 +166,13 @@ const L = {
   en:{calc:'💰 Calc',code:'🔎 Code',wiki:'📚 Wiki',
       h_calc:'Customs payment calculation',h_code:'Find HS code',h_wiki:'Trade Wiki — glossary',
       q_calc:'Product or HS code…',q_code:'Describe the product…',q_wiki:'Search a term…',
-      price:'Value (CIF), USD',qty:'Qty in rate unit — optional',
+      price:'Invoice value, USD',qty:'Qty in rate unit — optional',
       cert:'Origin certificate available (ST-1/Form A)',go:'Calculate',
       pick:'Enter a product and pick a code',
+      transport:'Freight to Uzbek border, USD',insurance:'Insurance, USD (if any)',
+      inco:[['CIF','CIF / CIP — freight & insurance included'],['CFR','CFR / CPT — freight included, no insurance'],['FOB','FOB / FCA / EXW — no freight/insurance'],['DAP','DAP / DDP / DPU — delivery included']],
+      inco_h:'Customs value = invoice + freight to border + insurance (whatever is not yet in the price per Incoterms).',
+      cust:'Customs value',
       total:'TOTAL payments',rate:'CB rate',
       disc:'Estimate. Exact calc with excise, exemptions and country regime — in the bot chat.',
       terms:n=>n+' terms',empty:'Nothing found',need:'Enter code and value',tochat:'Open in bot chat',
@@ -178,6 +194,16 @@ h_calc.textContent=L.h_calc; h_code.textContent=L.h_code; h_perm.textContent=L.h
 c_q.placeholder=L.q_calc; k_q.placeholder=L.q_code; p_q.placeholder=L.q_perm; w_q.placeholder=L.q_wiki;
 c_price.placeholder=L.price; c_qty.placeholder=L.qty; c_cert_l.textContent=L.cert;
 c_go.textContent=L.go; c_disc.textContent=''; c_picked.textContent=L.pick; p_picked.textContent=L.p_pick;
+c_transport.placeholder=L.transport; c_ins.placeholder=L.insurance; c_inco_h.textContent=L.inco_h;
+c_inco.innerHTML=L.inco.map(o=>`<option value="${o[0]}">${o[1]}</option>`).join('');
+// показ «Транспорт»/«Страховка» по условиям поставки (что ещё не в цене → добавляем к тамож. стоимости)
+const _incoRule={CIF:[false,false],CFR:[false,true],FOB:[true,true],DAP:[false,false]};
+function incoUpd(){
+  const r=_incoRule[c_inco.value]||[false,false];
+  c_transport.style.display=r[0]?'block':'none'; if(!r[0]) c_transport.value='';
+  c_ins.style.display=r[1]?'block':'none'; if(!r[1]) c_ins.value='';
+}
+c_inco.onchange=incoUpd; incoUpd();
 
 // вкладки
 function showTab(p){
@@ -210,11 +236,13 @@ const csug=debounce(async()=>{
 c_q.oninput=csug;
 c_go.onclick=async()=>{
   const code=pickedCode||c_q.value.replace(/\s/g,'');
-  const price=parseFloat(c_price.value);
-  if(!/^\d{4,}$/.test(code)||!price){c_out.innerHTML='<div class="empty">'+L.need+'</div>';return}
+  const inv=parseFloat(c_price.value)||0;
+  // Таможенная стоимость = инвойс + транспорт до границы + страховка (то, что не в цене по Incoterms).
+  const cust=inv+(parseFloat(c_transport.value)||0)+(parseFloat(c_ins.value)||0);
+  if(!/^\d{4,}$/.test(code)||!cust){c_out.innerHTML='<div class="empty">'+L.need+'</div>';return}
   c_out.innerHTML='<div class="empty">…</div>';
   const r=await fetch(API+'/api/calc',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({code,price_usd:price,qty:parseFloat(c_qty.value)||0,has_certificate:c_cert.checked,
+    body:JSON.stringify({code,price_usd:cust,qty:parseFloat(c_qty.value)||0,has_certificate:c_cert.checked,
       lang,initData:(tg&&tg.initData)||''})});
   const d=await r.json();
   if(d.gated){
@@ -227,6 +255,7 @@ c_go.onclick=async()=>{
   const res=(d.result&&d.result.result_sum)||{};
   let h='<div class="card">';
   if(d.name) h+='<div class="hint">'+d.name.slice(0,80)+'</div>';
+  h+=`<div class="line"><span>${L.cust} (${c_inco.value})</span><b>${fmt(cust)} USD</b></div>`;
   for(const[k,v] of Object.entries(res)){
     if(k.startsWith('ИТОГО')) continue;
     if((k==='Акциз'||k.startsWith('Дополнительная'))&&!v) continue;
