@@ -76,6 +76,12 @@
   <div class="hint" id="c_inco_h"></div>
   <input id="c_qty" type="number" inputmode="decimal" placeholder="Кол-во в единице ставки (для $/шт, $/кг, $/см³) — необязательно">
   <label class="row"><input type="checkbox" id="c_cert"><span id="c_cert_l">Есть сертификат происхождения (СТ-1/форма А)</span></label>
+  <div id="c_util" style="display:none">
+    <div class="hint" id="c_util_h">🚗 Утилизационный сбор</div>
+    <select id="c_eng"></select>
+    <select id="c_age"></select>
+    <input id="c_uval" type="number" inputmode="decimal">
+  </div>
   <button class="go" id="c_go">Рассчитать</button>
   <div id="c_out"></div>
   <div class="hint" id="c_disc"></div>
@@ -127,6 +133,11 @@ const L = {
       inco:[['CIF','CIF / CIP — фрахт и страховка включены'],['CFR','CFR / CPT — фрахт включён, страховка нет'],['FOB','FOB / FCA / EXW — без фрахта и страховки'],['DAP','DAP / DDP / DPU — доставка включена']],
       inco_h:'Таможенная стоимость = инвойс + транспорт до границы + страховка (то, что ещё не в цене по Incoterms).',
       cust:'Таможенная стоимость',
+      util_h:'🚗 Утилизационный сбор (для транспорта)',
+      eng:[['ice','Двигатель: ДВС'],['electric','Двигатель: электро'],['hybrid','Двигатель: гибрид']],
+      age:[['used','Возраст: б/у (старше 3 лет)'],['new','Возраст: новое (до 3 лет)']],
+      uval_vol:'Объём двигателя, см³',uval_mass:'Полная масса, т',uval_pow:'Мощность, кВт',
+      util_line:'Утилизационный сбор',util_grand:'Всего с утильсбором',
       total:'ИТОГО платежей',rate:'Курс ЦБ',
       disc:'Ориентировочно. Точный расчёт с учётом акцизов, льгот и режима страны — в чате бота.',
       terms:n=>n+' терминов',empty:'Ничего не найдено',need:'Укажите код и стоимость',tochat:'Оформить в чате бота',
@@ -150,6 +161,11 @@ const L = {
       inco:[['CIF','CIF / CIP — fraxt va sug\'urta kiritilgan'],['CFR','CFR / CPT — fraxt bor, sug\'urta yo\'q'],['FOB','FOB / FCA / EXW — fraxt va sug\'urtasiz'],['DAP','DAP / DDP / DPU — yetkazib berish kiritilgan']],
       inco_h:'Bojxona qiymati = invoys + chegaragacha transport + sug\'urta (Incoterms bo\'yicha narxda yo\'q qismi).',
       cust:'Bojxona qiymati',
+      util_h:'🚗 Utilizatsiya yig\'imi (transport uchun)',
+      eng:[['ice','Dvigatel: IYoD'],['electric','Dvigatel: elektro'],['hybrid','Dvigatel: gibrid']],
+      age:[['used','Yoshi: ishlatilgan (3 yildan katta)'],['new','Yoshi: yangi (3 yilgacha)']],
+      uval_vol:'Dvigatel hajmi, sm³',uval_mass:'To\'liq massa, t',uval_pow:'Quvvat, kVt',
+      util_line:'Utilizatsiya yig\'imi',util_grand:'Utilizatsiya bilan jami',
       total:'JAMI to\'lovlar',rate:'MB kursi',
       disc:'Taxminan. Aniq hisob — bot chatida.',
       terms:n=>n+' ta atama',empty:'Hech narsa topilmadi',need:'Kod va qiymatni kiriting',tochat:'Bot chatida rasmiylashtirish',
@@ -173,6 +189,11 @@ const L = {
       inco:[['CIF','CIF / CIP — freight & insurance included'],['CFR','CFR / CPT — freight included, no insurance'],['FOB','FOB / FCA / EXW — no freight/insurance'],['DAP','DAP / DDP / DPU — delivery included']],
       inco_h:'Customs value = invoice + freight to border + insurance (whatever is not yet in the price per Incoterms).',
       cust:'Customs value',
+      util_h:'🚗 Recycling fee (for vehicles)',
+      eng:[['ice','Engine: ICE'],['electric','Engine: electric'],['hybrid','Engine: hybrid']],
+      age:[['used','Age: used (over 3 years)'],['new','Age: new (up to 3 years)']],
+      uval_vol:'Engine volume, cm³',uval_mass:'Gross weight, t',uval_pow:'Power, kW',
+      util_line:'Recycling fee',util_grand:'Total incl. recycling',
       total:'TOTAL payments',rate:'CB rate',
       disc:'Estimate. Exact calc with excise, exemptions and country regime — in the bot chat.',
       terms:n=>n+' terms',empty:'Nothing found',need:'Enter code and value',tochat:'Open in bot chat',
@@ -205,6 +226,21 @@ function incoUpd(){
 }
 c_inco.onchange=incoUpd; incoUpd();
 
+// --- Утилизационный сбор: блок виден только для транспортных кодов (8701–8705, 8716) ---
+c_util_h.textContent=L.util_h;
+c_eng.innerHTML=L.eng.map(o=>`<option value="${o[0]}">${o[1]}</option>`).join('');
+c_age.innerHTML=L.age.map(o=>`<option value="${o[0]}">${o[1]}</option>`).join('');
+let utilField='volume_cm3';
+function utilUpdate(){
+  const code=(pickedCode||c_q.value||'').replace(/\s/g,'');
+  const veh=/^(8701|8702|8703|8704|8705|8716)/.test(code);
+  c_util.style.display=veh?'block':'none';
+  if(!veh) return;
+  if(code.startsWith('8704')){utilField='mass_t'; c_uval.placeholder=L.uval_mass;}
+  else if(code.startsWith('8701')){utilField='power_kw'; c_uval.placeholder=L.uval_pow;}
+  else {utilField='volume_cm3'; c_uval.placeholder=L.uval_vol;}
+}
+
 // вкладки
 function showTab(p){
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
@@ -230,10 +266,10 @@ const csug=debounce(async()=>{
   c_sug.style.display=d.items.length?'block':'none';
   c_sug.querySelectorAll('div').forEach(el=>el.onclick=()=>{
     pickedCode=el.dataset.c; c_q.value=el.dataset.c; c_picked.textContent='Код: '+el.dataset.c;
-    c_sug.style.display='none';
+    c_sug.style.display='none'; utilUpdate();
   });
 },250);
-c_q.oninput=csug;
+c_q.oninput=()=>{csug(); utilUpdate();};
 c_go.onclick=async()=>{
   const code=pickedCode||c_q.value.replace(/\s/g,'');
   const inv=parseFloat(c_price.value)||0;
@@ -241,9 +277,15 @@ c_go.onclick=async()=>{
   const cust=inv+(parseFloat(c_transport.value)||0)+(parseFloat(c_ins.value)||0);
   if(!/^\d{4,}$/.test(code)||!cust){c_out.innerHTML='<div class="empty">'+L.need+'</div>';return}
   c_out.innerHTML='<div class="empty">…</div>';
+  const body={code,price_usd:cust,qty:parseFloat(c_qty.value)||0,has_certificate:c_cert.checked,
+      lang,initData:(tg&&tg.initData)||''};
+  // Утильсбор: для транспортных кодов добавляем двигатель/возраст + характеристику.
+  if(c_util.style.display!=='none'){
+    body.engine_type=c_eng.value; body.is_new=(c_age.value==='new');
+    const uv=parseFloat(c_uval.value); if(uv) body[utilField]=uv;
+  }
   const r=await fetch(API+'/api/calc',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({code,price_usd:cust,qty:parseFloat(c_qty.value)||0,has_certificate:c_cert.checked,
-      lang,initData:(tg&&tg.initData)||''})});
+    body:JSON.stringify(body)});
   const d=await r.json();
   if(d.gated){
     c_disc.textContent='';
@@ -261,8 +303,20 @@ c_go.onclick=async()=>{
     if((k==='Акциз'||k.startsWith('Дополнительная'))&&!v) continue;
     h+=`<div class="line"><span>${k}</span><b>${fmt(v)} сум</b></div>`;
   }
-  if(res['ИТОГО платежей']!==undefined)
-    h+=`<div class="line total"><span>${L.total}</span><b>${fmt(res['ИТОГО платежей'])} сум</b></div>`;
+  const totalPay=res['ИТОГО платежей'];
+  if(totalPay!==undefined)
+    h+=`<div class="line total"><span>${L.total}</span><b>${fmt(totalPay)} сум</b></div>`;
+  // Утилизационный сбор (для транспорта): отдельной строкой + общий итог.
+  const u=d.recycling;
+  if(u){
+    if(u.ok && u.amount_uzs){
+      h+=`<div class="line"><span>${L.util_line}</span><b>${fmt(u.amount_uzs)} сум</b></div>`;
+      if(totalPay!==undefined)
+        h+=`<div class="line total"><span>${L.util_grand}</span><b>${fmt(totalPay+u.amount_uzs)} сум</b></div>`;
+    } else if(u.note){
+      h+=`<div class="hint">🚗 ${u.category||''}: ${u.note}</div>`;
+    }
+  }
   h+=`<div class="hint">${L.rate}: ${fmt(d.rate_cbu)} · ${d.duty_label||''}</div></div>`;
   c_out.innerHTML=h; c_disc.textContent=L.disc;
 };
