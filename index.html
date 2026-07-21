@@ -357,7 +357,7 @@ k_q.oninput=debounce(async()=>{
   const d=await api('/api/search?q='+encodeURIComponent(q));
   k_cnt.textContent=d.items.length?d.items.length+'':L.empty;
   k_list.innerHTML=d.items.map((i,idx)=>
-    `<div class="item"><div class="term" data-i="${idx}"><span><span class="code">${i.code}</span> <span class="name">${(i.name||'').slice(0,70)}</span></span><span class="arrow">›</span></div><div class="body" id="kb${idx}"></div></div>`
+    `<div class="item"><div class="term" data-i="${idx}"><span><span class="code">${i.code}</span> <span class="name">${(i.name||'')}</span></span><span class="arrow">›</span></div><div class="body" id="kb${idx}"></div></div>`
   ).join('');
   k_list.querySelectorAll('.term').forEach(t=>t.onclick=async()=>{
     const it=t.closest('.item'); it.classList.toggle('open');
@@ -369,7 +369,27 @@ k_q.oninput=debounce(async()=>{
       const du=(rd.rates&&rd.rates.duty)||{};
       bd.innerHTML=`<div class="line"><span>Пошлина</span><b>${du.label||(du.advalorem_pct??'—')+'%'}</b></div>`+
         `<div class="line"><span>НДС</span><b>${rd.rates&&rd.rates.vat_exempt?'освобождён':((rd.rates&&rd.rates.vat_pct)||12)+'%'}</b></div>`+
+        `<button class="subbtn" data-code="${code}" style="margin:6px 0;padding:6px 12px;border:1px solid var(--brand-soft,#e2f5e9);border-radius:10px;background:transparent;color:var(--brand,#16a34a);font-weight:600;cursor:pointer">📂 Подкоды группы</button>`+
+        `<div class="subs"></div>`+
         `<div class="hint">Ориентировочно. Точно — в чате бота.</div>`;
+      bd.querySelector('.subbtn').onclick=async(e)=>{
+        const box=bd.querySelector('.subs');
+        if(box.dataset.done){box.innerHTML='';box.dataset.done='';return;}
+        box.dataset.done='1'; box.textContent='…';
+        const ch=await api('/api/children?code='+e.target.dataset.code);
+        box.innerHTML=(ch.items||[]).map((x,j)=>
+          `<div class="term subc" data-code="${x.code}" style="padding:5px 0"><span><span class="code">${x.code}</span> <span class="name">${(x.name||'')}</span></span><span class="arrow">›</span></div><div class="sbody" id="sb${j}"></div>`
+        ).join('')||'—';
+        box.querySelectorAll('.subc').forEach(s=>s.onclick=async()=>{
+          const sb=s.nextElementSibling;
+          if(sb.dataset.done){sb.innerHTML='';sb.dataset.done='';return;}
+          sb.dataset.done='1'; sb.textContent='…';
+          const r2=await api('/api/rates?code='+s.dataset.code);
+          const du2=(r2.rates&&r2.rates.duty)||{};
+          sb.innerHTML=`<div class="line"><span>Пошлина</span><b>${du2.label||(du2.advalorem_pct??'—')+'%'}</b></div>`+
+            `<div class="line"><span>НДС</span><b>${r2.rates&&r2.rates.vat_exempt?'освобождён':((r2.rates&&r2.rates.vat_pct)||12)+'%'}</b></div>`;
+        });
+      };
     }
   });
 },250);
@@ -380,7 +400,7 @@ async function permLoad(code){
   p_out.innerHTML='<div class="empty">…</div>';
   const d=await api('/api/permits?code='+encodeURIComponent(code));
   let h='<div class="card">';
-  if(d.name) h+='<div class="hint">'+esc(d.name).slice(0,90)+'</div>';
+  if(d.name) h+='<div class="hint">'+esc(d.name)+'</div>';
   // Подтверждение соответствия
   h+='<div class="line"><span>'+L.conf_t+'</span><b>'+
      (d.conformity ? (d.conformity.form_key==='cert'?L.form_cert:d.conformity.form_key==='declaration'?L.form_decl:esc(d.conformity.form_ru))
