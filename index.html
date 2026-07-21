@@ -326,7 +326,7 @@ c_go.onclick=async()=>{
   }
   const res=(d.result&&d.result.result_sum)||{};
   let h='<div class="card">';
-  if(d.name) h+='<div class="hint">'+d.name.slice(0,80)+'</div>';
+  if(d.name) h+='<div class="hint">'+d.name+'</div>';
   h+=`<div class="line"><span>${L.cust} (${c_inco.value})</span><b>${fmt(cust)} USD</b></div>`;
   for(const[k,v] of Object.entries(res)){
     if(k.startsWith('ИТОГО')) continue;
