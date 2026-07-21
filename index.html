@@ -44,6 +44,7 @@
      background:#fff;color:var(--text);font-size:16px;margin:6px 0}
   input:focus,select:focus{border-color:var(--brand)}
   input::placeholder{color:var(--hint)}
+  .flabel{font-size:12.5px;font-weight:700;color:var(--text);margin:9px 2px 3px}
   label.row{display:flex;align-items:center;gap:10px;margin:10px 2px;font-size:15px}
   label.row input{width:auto;margin:0}
   /* Главная кнопка действия — жёлтая (яркий акцент на фоне фиолетового) */
@@ -82,23 +83,27 @@
   <div class="s" id="b_tag">Таможенный помощник Узбекистана</div>
 </div>
 <div class="tabs">
-  <button class="tab on" data-p="calc" id="tcalc">💰 Расчёт</button>
-  <button class="tab" data-p="code" id="tcode">🔎 Код</button>
-  <button class="tab" data-p="perm" id="tperm">📋 Док-ты</button>
-  <button class="tab" data-p="wiki" id="twiki">📚 Вики</button>
+  <button type="button" class="tab on" data-p="calc" id="tcalc">💰 Расчёт</button>
+  <button type="button" class="tab" data-p="code" id="tcode">🔎 Код</button>
+  <button type="button" class="tab" data-p="perm" id="tperm">📋 Док-ты</button>
+  <button type="button" class="tab" data-p="wiki" id="twiki">📚 Вики</button>
 </div>
 
 <!-- РАСЧЁТ -->
 <div class="pane on" id="pcalc">
   <h2 id="h_calc">Расчёт таможенных платежей</h2>
+  <div class="flabel" id="c_q_l"></div>
   <input id="c_q" placeholder="Товар или код ТН ВЭД…" autocomplete="off">
   <div class="sug" id="c_sug" style="display:none"></div>
   <div class="hint" id="c_picked"></div>
+  <div class="flabel" id="c_price_l"></div>
   <input id="c_price" type="number" inputmode="decimal" placeholder="Стоимость по инвойсу, USD">
+  <div class="flabel" id="c_inco_l"></div>
   <select id="c_inco"></select>
   <input id="c_transport" type="number" inputmode="decimal" placeholder="Транспорт до границы РУз, USD" style="display:none">
   <input id="c_ins" type="number" inputmode="decimal" placeholder="Страховка, USD (если была)" style="display:none">
   <div class="hint" id="c_inco_h"></div>
+  <div class="flabel" id="c_qty_l"></div>
   <input id="c_qty" type="number" inputmode="decimal" placeholder="Кол-во в единице ставки (для $/шт, $/кг, $/см³) — необязательно">
   <label class="row"><input type="checkbox" id="c_cert"><span id="c_cert_l">Есть сертификат происхождения (СТ-1/форма А)</span></label>
   <div id="c_util" style="display:none">
@@ -151,6 +156,7 @@ const L = {
   ru:{tag:'Таможенный помощник: расчёт · код ТН ВЭД · документы',calc:'💰 Расчёт',code:'🔎 Код',wiki:'📚 Вики',
       h_calc:'Расчёт таможенных платежей',h_code:'Подбор кода ТН ВЭД',h_wiki:'ВЭД Вики — словарь',
       q_calc:'Товар или код ТН ВЭД…',q_code:'Опишите товар…',q_wiki:'Поиск термина…',
+      l_code:'Код ТН ВЭД',l_price:'Цена по инвойсу, $',l_qty:'Количество (для $/шт, $/кг)',l_inco:'Базис поставки (Incoterms)',
       price:'Стоимость по инвойсу, USD',qty:'Кол-во в единице ставки — необязательно',
       cert:'Есть сертификат происхождения (СТ-1/форма А)',go:'Рассчитать',
       pick:'Введите товар и выберите код из подсказок',
@@ -179,6 +185,7 @@ const L = {
   uz:{tag:'Bojxona yordamchisi: hisob · TIF TN kodi · hujjatlar',calc:'💰 Hisob',code:'🔎 Kod',wiki:'📚 Viki',
       h_calc:'Bojxona to\'lovlarini hisoblash',h_code:'TIF TN kodini tanlash',h_wiki:'VED Vika — lug\'at',
       q_calc:'Tovar yoki TIF TN kodi…',q_code:'Tovarni ta\'riflang…',q_wiki:'Atama qidirish…',
+      l_code:'TIF TN kodi',l_price:'Invoys narxi, $',l_qty:'Miqdor ($/dona, $/kg uchun)',l_inco:'Yetkazib berish sharti (Incoterms)',
       price:'Invoys qiymati, USD',qty:'Stavka birligidagi miqdor — ixtiyoriy',
       cert:'Kelib chiqish sertifikati bor (ST-1/A shakli)',go:'Hisoblash',
       pick:'Tovarni kiriting va kodni tanlang',
@@ -207,6 +214,7 @@ const L = {
   en:{tag:'Customs helper: payments · HS code · documents',calc:'💰 Calc',code:'🔎 Code',wiki:'📚 Wiki',
       h_calc:'Customs payment calculation',h_code:'Find HS code',h_wiki:'Trade Wiki — glossary',
       q_calc:'Product or HS code…',q_code:'Describe the product…',q_wiki:'Search a term…',
+      l_code:'HS code',l_price:'Invoice price, $',l_qty:'Quantity (for $/pc, $/kg)',l_inco:'Delivery terms (Incoterms)',
       price:'Invoice value, USD',qty:'Qty in rate unit — optional',
       cert:'Origin certificate available (ST-1/Form A)',go:'Calculate',
       pick:'Enter a product and pick a code',
@@ -240,6 +248,7 @@ tcalc.textContent=L.calc; tcode.textContent=L.code; tperm.textContent=L.perm; tw
 h_calc.textContent=L.h_calc; h_code.textContent=L.h_code; h_perm.textContent=L.h_perm; h_wiki.textContent=L.h_wiki;
 c_q.placeholder=L.q_calc; k_q.placeholder=L.q_code; p_q.placeholder=L.q_perm; w_q.placeholder=L.q_wiki;
 c_price.placeholder=L.price; c_qty.placeholder=L.qty; c_cert_l.textContent=L.cert;
+c_q_l.textContent=L.l_code; c_price_l.textContent=L.l_price; c_inco_l.textContent=L.l_inco; c_qty_l.textContent=L.l_qty;
 c_go.textContent=L.go; c_disc.textContent=''; c_picked.textContent=L.pick; p_picked.textContent=L.p_pick;
 c_transport.placeholder=L.transport; c_ins.placeholder=L.insurance; c_inco_h.textContent=L.inco_h;
 c_inco.innerHTML=L.inco.map(o=>`<option value="${o[0]}">${o[1]}</option>`).join('');
