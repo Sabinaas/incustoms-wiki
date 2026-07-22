@@ -178,6 +178,7 @@ const L = {
       total:'ИТОГО платежей',rate:'Курс ЦБ',
       disc:'Ориентировочно. Точный расчёт с учётом акцизов, льгот и режима страны — в чате бота.',
       terms:n=>n+' терминов',empty:'Ничего не найдено',need:'Укажите код и стоимость',tochat:'Оформить в чате бота',
+      pdf:'📄 Скачать PDF',pdf_wait:'Готовим PDF…',pdf_ok:'📄 PDF отправлен в чат с ботом.',pdf_up:'Оформить тариф в чате',
       perm:'📋 Док-ты',h_perm:'Разрешительные документы',q_perm:'Товар или код ТН ВЭД…',
       p_pick:'Введите товар и выберите код из подсказок',
       conf_t:'Подтверждение соответствия',sanit_t:'Санитарно-эпидемиологическое заключение',
@@ -209,6 +210,7 @@ const L = {
       total:'JAMI to\'lovlar',rate:'MB kursi',
       disc:'Taxminan. Aniq hisob — bot chatida.',
       terms:n=>n+' ta atama',empty:'Hech narsa topilmadi',need:'Kod va qiymatni kiriting',tochat:'Bot chatida rasmiylashtirish',
+      pdf:'📄 PDF yuklab olish',pdf_wait:'PDF tayyorlanmoqda…',pdf_ok:'📄 PDF bot chatiga yuborildi.',pdf_up:'Chatda tarif rasmiylashtirish',
       perm:'📋 Hujjat',h_perm:'Ruxsat beruvchi hujjatlar',q_perm:'Tovar yoki TIF TN kodi…',
       p_pick:'Tovarni kiriting va kodni tanlang',
       conf_t:'Muvofiqlikni tasdiqlash',sanit_t:'Sanitariya-epidemiologik xulosa',
@@ -240,6 +242,7 @@ const L = {
       total:'TOTAL payments',rate:'CB rate',
       disc:'Estimate. Exact calc with excise, exemptions and country regime — in the bot chat.',
       terms:n=>n+' terms',empty:'Nothing found',need:'Enter code and value',tochat:'Open in bot chat',
+      pdf:'📄 Download PDF',pdf_wait:'Preparing PDF…',pdf_ok:'📄 PDF sent to your bot chat.',pdf_up:'Get a plan in the chat',
       perm:'📋 Docs',h_perm:'Required permits & documents',q_perm:'Product or HS code…',
       p_pick:'Enter a product and pick a code',
       conf_t:'Conformity assessment',sanit_t:'Sanitary-epidemiological certificate',
@@ -377,8 +380,25 @@ c_go.onclick=async()=>{
       h+=`<div class="hint">🚗 ${u.category||''}: ${u.note}</div>`;
     }
   }
-  h+=`<div class="hint">${L.rate}: ${fmt(d.rate_cbu)} · ${d.duty_label||''}</div></div>`;
+  h+=`<div class="hint">${L.rate}: ${fmt(d.rate_cbu)} · ${d.duty_label||''}</div>`;
+  // PDF-отчёт (платно): та же серверная сборка, что и в чате; готовый файл уходит в чат бота.
+  h+=`<button class="go" id="c_pdf" style="margin-top:12px">${L.pdf}</button>`;
+  h+='<div class="hint" id="c_pdf_msg" style="margin-top:6px"></div></div>';
   c_out.innerHTML=h; c_disc.textContent=L.disc;
+  const pdfBtn=document.getElementById('c_pdf'), pdfMsg=document.getElementById('c_pdf_msg');
+  if(pdfBtn) pdfBtn.onclick=async()=>{
+    pdfBtn.disabled=true; pdfMsg.textContent=L.pdf_wait;
+    try{
+      const pr=await fetch(API+'/api/pdf',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(body)});
+      const pd=await pr.json();
+      if(pd.ok){ pdfMsg.textContent=pd.message||L.pdf_ok; }
+      else if(pd.upsell){  // нет права на PDF → кнопка ведёт на оформление тарифа в чате
+        pdfMsg.textContent=pd.message||'';
+        pdfBtn.textContent=L.pdf_up; pdfBtn.disabled=false; pdfBtn.onclick=()=>{ if(tg) tg.close(); };
+      } else { pdfMsg.textContent=pd.message||'—'; pdfBtn.disabled=false; }
+    }catch(e){ pdfMsg.textContent='—'; pdfBtn.disabled=false; }
+  };
 };
 
 // ---- КОД ----
