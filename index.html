@@ -105,6 +105,8 @@
   <div class="hint" id="c_inco_h"></div>
   <div class="flabel" id="c_qty_l"></div>
   <input id="c_qty" type="number" inputmode="decimal" placeholder="Кол-во в единице ставки (для $/шт, $/кг, $/см³) — необязательно">
+  <div class="flabel" id="c_orig_l"></div>
+  <select id="c_orig"></select>
   <label class="row"><input type="checkbox" id="c_cert"><span id="c_cert_l">Есть сертификат происхождения (СТ-1/форма А)</span></label>
   <div id="c_util" style="display:none">
     <div class="hint" id="c_util_h">🚗 Утилизационный сбор</div>
@@ -157,8 +159,9 @@ const L = {
       h_calc:'Расчёт таможенных платежей',h_code:'Подбор кода ТН ВЭД',h_wiki:'ВЭД Вики — словарь',
       q_calc:'Товар или код ТН ВЭД…',q_code:'Опишите товар…',q_wiki:'Поиск термина…',
       l_code:'Код ТН ВЭД',l_price:'Цена по инвойсу, $',l_qty:'Количество (для $/шт, $/кг)',l_inco:'Базис поставки (Incoterms)',
+      l_orig:'Страна происхождения',orig_other:'— другая страна (базовая ставка) —',
       price:'Стоимость по инвойсу, USD',qty:'Кол-во в единице ставки — необязательно',
-      cert:'Есть сертификат происхождения (СТ-1/форма А)',go:'Рассчитать',
+      cert:'Есть сертификат происхождения (СТ-1/EUR.1/Form A)',go:'Рассчитать',
       pick:'Введите товар и выберите код из подсказок',
       transport:'Транспорт до границы РУз, USD',insurance:'Страховка, USD (если была)',
       inco:[['EXW','EXW — самовывоз, все расходы на покупателе'],['FCA','FCA — передача перевозчику, фрахт на покупателе'],['FAS','FAS — вдоль борта судна, фрахт на покупателе'],['FOB','FOB — на борту судна, фрахт на покупателе'],['CFR','CFR — фрахт включён, страховка нет'],['CIF','CIF — фрахт и страховка включены'],['CPT','CPT — перевозка включена, страховка нет'],['CIP','CIP — перевозка и страховка включены'],['DAP','DAP — доставка до места (без выгрузки)'],['DPU','DPU — доставка с выгрузкой'],['DDP','DDP — доставка с оплатой пошлин']],
@@ -186,8 +189,9 @@ const L = {
       h_calc:'Bojxona to\'lovlarini hisoblash',h_code:'TIF TN kodini tanlash',h_wiki:'VED Vika — lug\'at',
       q_calc:'Tovar yoki TIF TN kodi…',q_code:'Tovarni ta\'riflang…',q_wiki:'Atama qidirish…',
       l_code:'TIF TN kodi',l_price:'Invoys narxi, $',l_qty:'Miqdor ($/dona, $/kg uchun)',l_inco:'Yetkazib berish sharti (Incoterms)',
+      l_orig:'Kelib chiqish davlati',orig_other:'— boshqa davlat (bazaviy stavka) —',
       price:'Invoys qiymati, USD',qty:'Stavka birligidagi miqdor — ixtiyoriy',
-      cert:'Kelib chiqish sertifikati bor (ST-1/A shakli)',go:'Hisoblash',
+      cert:'Kelib chiqish sertifikati bor (ST-1/EUR.1/Form A)',go:'Hisoblash',
       pick:'Tovarni kiriting va kodni tanlang',
       transport:'RUz chegarasigacha transport, USD',insurance:'Sug\'urta, USD (agar bo\'lsa)',
       inco:[['EXW','EXW — o\'zi olib ketish, barcha xarajat xaridorda'],['FCA','FCA — tashuvchiga topshirish, fraxt xaridorda'],['FAS','FAS — kema yonida, fraxt xaridorda'],['FOB','FOB — kema bortida, fraxt xaridorda'],['CFR','CFR — fraxt bor, sug\'urta yo\'q'],['CIF','CIF — fraxt va sug\'urta kiritilgan'],['CPT','CPT — tashish bor, sug\'urta yo\'q'],['CIP','CIP — tashish va sug\'urta kiritilgan'],['DAP','DAP — joyga yetkazish (tushirishsiz)'],['DPU','DPU — tushirish bilan yetkazish'],['DDP','DDP — boj to\'lab yetkazish']],
@@ -215,8 +219,9 @@ const L = {
       h_calc:'Customs payment calculation',h_code:'Find HS code',h_wiki:'Trade Wiki — glossary',
       q_calc:'Product or HS code…',q_code:'Describe the product…',q_wiki:'Search a term…',
       l_code:'HS code',l_price:'Invoice price, $',l_qty:'Quantity (for $/pc, $/kg)',l_inco:'Delivery terms (Incoterms)',
+      l_orig:'Country of origin',orig_other:'— other country (base rate) —',
       price:'Invoice value, USD',qty:'Qty in rate unit — optional',
-      cert:'Origin certificate available (ST-1/Form A)',go:'Calculate',
+      cert:'Origin certificate available (ST-1/EUR.1/Form A)',go:'Calculate',
       pick:'Enter a product and pick a code',
       transport:'Freight to Uzbek border, USD',insurance:'Insurance, USD (if any)',
       inco:[['EXW','EXW — ex works, buyer bears all costs'],['FCA','FCA — free carrier, buyer pays freight'],['FAS','FAS — free alongside ship, buyer pays freight'],['FOB','FOB — free on board, buyer pays freight'],['CFR','CFR — freight included, no insurance'],['CIF','CIF — freight & insurance included'],['CPT','CPT — carriage included, no insurance'],['CIP','CIP — carriage & insurance included'],['DAP','DAP — delivered at place (not unloaded)'],['DPU','DPU — delivered unloaded'],['DDP','DDP — delivered duty paid']],
@@ -249,6 +254,12 @@ h_calc.textContent=L.h_calc; h_code.textContent=L.h_code; h_perm.textContent=L.h
 c_q.placeholder=L.q_calc; k_q.placeholder=L.q_code; p_q.placeholder=L.q_perm; w_q.placeholder=L.q_wiki;
 c_price.placeholder=L.price; c_qty.placeholder=L.qty; c_cert_l.textContent=L.cert;
 c_q_l.textContent=L.l_code; c_price_l.textContent=L.l_price; c_inco_l.textContent=L.l_inco; c_qty_l.textContent=L.l_qty;
+c_orig_l.textContent=L.l_orig;
+c_orig.innerHTML=[['',L.orig_other],['Российская Федерация','🇷🇺 Россия'],['Республика Казахстан','🇰🇿 Казахстан'],
+  ['Республика Беларусь','🇧🇾 Беларусь'],['Кыргызская Республика','🇰🇬 Кыргызстан'],['Республика Молдова','🇲🇩 Молдова'],
+  ['Республика Таджикистан','🇹🇯 Таджикистан'],['Республика Азербайджан','🇦🇿 Азербайджан'],['Украина','🇺🇦 Украина'],
+  ['Республика Грузия','🇬🇪 Грузия'],['Туркменистан','🇹🇲 Туркменистан']]
+  .map(o=>`<option value="${o[0]}">${o[1]}</option>`).join('');
 c_go.textContent=L.go; c_disc.textContent=''; c_picked.textContent=L.pick; p_picked.textContent=L.p_pick;
 c_transport.placeholder=L.transport; c_ins.placeholder=L.insurance; c_inco_h.textContent=L.inco_h;
 c_inco.innerHTML=L.inco.map(o=>`<option value="${o[0]}">${o[1]}</option>`).join('');
@@ -317,7 +328,7 @@ c_go.onclick=async()=>{
   if(!/^\d{4,}$/.test(code)||!cust){c_out.innerHTML='<div class="empty">'+L.need+'</div>';return}
   c_out.innerHTML='<div class="empty">…</div>';
   const body={code,price_usd:cust,qty:parseFloat(c_qty.value)||0,has_certificate:c_cert.checked,
-      lang,initData:(tg&&tg.initData)||''};
+      origin_country:c_orig.value,lang,initData:(tg&&tg.initData)||''};
   // Утильсбор: для транспортных кодов добавляем двигатель/возраст + характеристику.
   if(c_util.style.display!=='none'){
     body.engine_type=c_eng.value; body.is_new=(c_age.value==='new');
@@ -336,6 +347,7 @@ c_go.onclick=async()=>{
   const res=(d.result&&d.result.result_sum)||{};
   let h='<div class="card">';
   if(d.name) h+='<div class="hint">'+d.name+'</div>';
+  if(d.preference&&d.preference.note) h+='<div class="line" style="color:var(--brand,#16a34a);font-weight:600">'+d.preference.note+'</div>';
   h+=`<div class="line"><span>${L.cust} (${c_inco.value})</span><b>${fmt(cust)} USD</b></div>`;
   for(const[k,v] of Object.entries(res)){
     if(k.startsWith('ИТОГО')) continue;
