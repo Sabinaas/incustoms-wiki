@@ -105,6 +105,8 @@
   <div class="hint" id="c_inco_h"></div>
   <div class="flabel" id="c_qty_l"></div>
   <input id="c_qty" type="number" inputmode="decimal" placeholder="Кол-во в единице ставки (для $/шт, $/кг, $/см³) — необязательно">
+  <div class="flabel" id="c_wt_l"></div>
+  <input id="c_wt" type="number" inputmode="decimal" placeholder="Вес партии, кг — для проверки цены (необяз.)">
   <div class="flabel" id="c_orig_l"></div>
   <select id="c_orig"></select>
   <label class="row"><input type="checkbox" id="c_cert"><span id="c_cert_l">Есть сертификат происхождения (СТ-1/форма А)</span></label>
@@ -160,6 +162,7 @@ const L = {
       q_calc:'Товар или код ТН ВЭД…',q_code:'Опишите товар…',q_wiki:'Поиск термина…',
       l_code:'Код ТН ВЭД',l_price:'Цена по инвойсу, $',l_qty:'Количество (для $/шт, $/кг)',l_inco:'Базис поставки (Incoterms)',
       l_orig:'Страна происхождения',orig_other:'— другая страна (базовая ставка) —',
+      l_wt:'Вес партии, кг (проверка цены)',wt_ph:'Вес нетто, кг — для проверки занижения (необяз.)',
       price:'Стоимость по инвойсу, USD',qty:'Кол-во в единице ставки — необязательно',
       cert:'Есть сертификат происхождения (СТ-1/EUR.1/Form A)',go:'Рассчитать',
       pick:'Введите товар и выберите код из подсказок',
@@ -190,6 +193,7 @@ const L = {
       q_calc:'Tovar yoki TIF TN kodi…',q_code:'Tovarni ta\'riflang…',q_wiki:'Atama qidirish…',
       l_code:'TIF TN kodi',l_price:'Invoys narxi, $',l_qty:'Miqdor ($/dona, $/kg uchun)',l_inco:'Yetkazib berish sharti (Incoterms)',
       l_orig:'Kelib chiqish davlati',orig_other:'— boshqa davlat (bazaviy stavka) —',
+      l_wt:'Partiya vazni, kg (narx tekshiruvi)',wt_ph:'Netto vazn, kg — narx tekshiruvi uchun (ixtiyoriy)',
       price:'Invoys qiymati, USD',qty:'Stavka birligidagi miqdor — ixtiyoriy',
       cert:'Kelib chiqish sertifikati bor (ST-1/EUR.1/Form A)',go:'Hisoblash',
       pick:'Tovarni kiriting va kodni tanlang',
@@ -220,6 +224,7 @@ const L = {
       q_calc:'Product or HS code…',q_code:'Describe the product…',q_wiki:'Search a term…',
       l_code:'HS code',l_price:'Invoice price, $',l_qty:'Quantity (for $/pc, $/kg)',l_inco:'Delivery terms (Incoterms)',
       l_orig:'Country of origin',orig_other:'— other country (base rate) —',
+      l_wt:'Batch weight, kg (price check)',wt_ph:'Net weight, kg — for understatement check (optional)',
       price:'Invoice value, USD',qty:'Qty in rate unit — optional',
       cert:'Origin certificate available (ST-1/EUR.1/Form A)',go:'Calculate',
       pick:'Enter a product and pick a code',
@@ -254,7 +259,7 @@ h_calc.textContent=L.h_calc; h_code.textContent=L.h_code; h_perm.textContent=L.h
 c_q.placeholder=L.q_calc; k_q.placeholder=L.q_code; p_q.placeholder=L.q_perm; w_q.placeholder=L.q_wiki;
 c_price.placeholder=L.price; c_qty.placeholder=L.qty; c_cert_l.textContent=L.cert;
 c_q_l.textContent=L.l_code; c_price_l.textContent=L.l_price; c_inco_l.textContent=L.l_inco; c_qty_l.textContent=L.l_qty;
-c_orig_l.textContent=L.l_orig;
+c_orig_l.textContent=L.l_orig; c_wt_l.textContent=L.l_wt; c_wt.placeholder=L.wt_ph;
 c_orig.innerHTML=[['',L.orig_other],['Российская Федерация','🇷🇺 Россия'],['Республика Казахстан','🇰🇿 Казахстан'],
   ['Республика Беларусь','🇧🇾 Беларусь'],['Кыргызская Республика','🇰🇬 Кыргызстан'],['Республика Молдова','🇲🇩 Молдова'],
   ['Республика Таджикистан','🇹🇯 Таджикистан'],['Республика Азербайджан','🇦🇿 Азербайджан'],['Украина','🇺🇦 Украина'],
@@ -328,7 +333,7 @@ c_go.onclick=async()=>{
   if(!/^\d{4,}$/.test(code)||!cust){c_out.innerHTML='<div class="empty">'+L.need+'</div>';return}
   c_out.innerHTML='<div class="empty">…</div>';
   const body={code,price_usd:cust,qty:parseFloat(c_qty.value)||0,has_certificate:c_cert.checked,
-      origin_country:c_orig.value,lang,initData:(tg&&tg.initData)||''};
+      origin_country:c_orig.value,weight_kg:parseFloat(c_wt.value)||0,lang,initData:(tg&&tg.initData)||''};
   // Утильсбор: для транспортных кодов добавляем двигатель/возраст + характеристику.
   if(c_util.style.display!=='none'){
     body.engine_type=c_eng.value; body.is_new=(c_age.value==='new');
@@ -357,6 +362,10 @@ c_go.onclick=async()=>{
   const totalPay=res['ИТОГО платежей'];
   if(totalPay!==undefined)
     h+=`<div class="line total"><span>${L.total}</span><b>${fmt(totalPay)} сум</b></div>`;
+  // То, что знает чат: риск КТС (занижение цены), разрешительные, маркировка.
+  if(d.kts&&d.kts.note) h+='<div class="line" style="color:#d33;font-weight:600">'+d.kts.note+'</div>';
+  if(d.permits&&d.permits.length) h+='<div class="hint">📋 Разрешительные: '+d.permits.map(p=>p.permit+(p.npa?' ('+p.npa+')':'')).join('; ')+'</div>';
+  if(d.marking&&d.marking.requirement) h+='<div class="hint">🏷 Маркировка: '+d.marking.requirement+(d.marking.npa?' ('+d.marking.npa+')':'')+'</div>';
   // Утилизационный сбор (для транспорта): отдельной строкой + общий итог.
   const u=d.recycling;
   if(u){
