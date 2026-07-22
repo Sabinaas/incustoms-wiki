@@ -81,6 +81,14 @@
   .sug{background:#fff;border-radius:12px;margin-top:-2px;overflow:hidden;box-shadow:var(--shadow)}
   .sug div{padding:10px 14px;cursor:pointer;font-size:14px;border-bottom:1px solid var(--brand-soft)}
   .sug div:last-child{border:none}
+  .tariff-btn{width:100%;margin:4px 0 2px;padding:11px 14px;border:1.5px solid var(--brand-soft);
+    border-radius:12px;background:#fff;color:var(--brand-dark);font-size:13.5px;font-weight:700;
+    cursor:pointer;text-align:center}
+  .tariff-btn.on{background:var(--brand-soft);border-color:var(--brand)}
+  .tariff-panel{background:#fff;border:1.5px solid var(--brand-soft);border-radius:14px;
+    padding:14px 16px;margin:2px 0 4px;font-size:13.5px;line-height:1.5;box-shadow:var(--shadow)}
+  .tariff-panel b{color:var(--brand-dark)}
+  .tariff-panel .cta{margin-top:12px;font-size:12.5px;color:var(--hint)}
 </style>
 </head>
 <body>
@@ -88,6 +96,8 @@
   <div class="t">🧮 InCustom-Helper <span class="badge">ВЭД</span></div>
   <div class="s" id="b_tag">Таможенный помощник Узбекистана</div>
 </div>
+<button type="button" id="t_btn" class="tariff-btn"></button>
+<div id="t_panel" class="tariff-panel" style="display:none"></div>
 <div class="tabs">
   <button type="button" class="tab on" data-p="calc" id="tcalc">💰 Расчёт</button>
   <button type="button" class="tab" data-p="code" id="tcode">🔎 Код</button>
@@ -363,6 +373,26 @@ function showTab(p){
 }
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>showTab(t.dataset.p));
 const _it=params.get('tab'); if(['calc','code','perm','wiki'].includes(_it)) showTab(_it);
+
+// --- Тарифы: кнопка «Подробнее» → панель из /api/tariffs (единый источник с ботом) ---
+const _tL={ru:['💎 Тарифы: что бесплатно, что в Unlim','Подключить Unlim — в чате бота: /subscribe'],
+            uz:['💎 Tariflar: nima bepul, nima Unlimда','Unlimни ulash — bot chatida: /subscribe'],
+            en:['💎 Plans: what’s free vs Unlim','Get Unlim — in the bot chat: /subscribe']};
+t_btn.textContent=(_tL[lang]||_tL.ru)[0];
+let _tLoaded=false;
+t_btn.onclick=async()=>{
+  const open=t_panel.style.display==='none';
+  t_btn.classList.toggle('on',open);
+  t_panel.style.display=open?'block':'none';
+  if(open&&!_tLoaded){
+    t_panel.innerHTML='…';
+    try{ const d=await api('/api/tariffs?lang='+encodeURIComponent(lang));
+      t_panel.innerHTML=(d.text||'').replace(/\n/g,'<br>')+
+        '<div class="cta">👉 '+(_tL[lang]||_tL.ru)[1]+'</div>';
+      _tLoaded=true;
+    }catch(e){ t_panel.innerHTML=(_tL[lang]||_tL.ru)[1]; }
+  }
+};
 
 const fmt=n=>Math.round(n).toLocaleString('ru-RU').replace(/,/g,' ');
 const debounce=(f,ms)=>{let h;return(...a)=>{clearTimeout(h);h=setTimeout(()=>f(...a),ms)}};
