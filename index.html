@@ -114,7 +114,9 @@
   <div class="flabel" id="c_wt_l"></div>
   <input id="c_wt" type="number" inputmode="decimal" placeholder="Вес партии, кг — для проверки цены (необяз.)">
   <div class="flabel" id="c_orig_l"></div>
-  <select id="c_orig"></select>
+  <input id="c_orig_q" type="text" autocomplete="off">
+  <input id="c_orig" type="hidden">
+  <div class="sug" id="c_orig_sug"></div>
   <label class="row"><input type="checkbox" id="c_cert"><span id="c_cert_l">Есть сертификат происхождения (СТ-1/форма А)</span></label>
   <div id="c_util" style="display:none">
     <div class="hint" id="c_util_h">🚗 Утилизационный сбор</div>
@@ -176,6 +178,7 @@ const L = {
       q_calc:'Товар или код ТН ВЭД…',q_code:'Опишите товар…',q_wiki:'Поиск термина…',
       l_code:'Код ТН ВЭД',l_price:'Цена по инвойсу, $',l_qty:'Количество (для $/шт, $/кг)',l_inco:'Базис поставки (Incoterms)',
       l_orig:'Страна происхождения',orig_other:'— другая страна (базовая ставка) —',
+      orig_ph:'Страна или код (напр. «Росс» или 643)',orig_none:'— не выбрана (базовая ставка) —',
       l_wt:'Вес партии, кг (проверка цены)',wt_ph:'Вес нетто, кг — для проверки занижения (необяз.)',
       price:'Стоимость по инвойсу, USD',qty:'Кол-во в единице ставки — необязательно',
       cert:'Есть сертификат происхождения (СТ-1/EUR.1/Form A)',go:'Рассчитать',
@@ -209,6 +212,7 @@ const L = {
       q_calc:'Tovar yoki TIF TN kodi…',q_code:'Tovarni ta\'riflang…',q_wiki:'Atama qidirish…',
       l_code:'TIF TN kodi',l_price:'Invoys narxi, $',l_qty:'Miqdor ($/dona, $/kg uchun)',l_inco:'Yetkazib berish sharti (Incoterms)',
       l_orig:'Kelib chiqish davlati',orig_other:'— boshqa davlat (bazaviy stavka) —',
+      orig_ph:'Davlat yoki kod (masalan «Ros» yoki 643)',orig_none:'— tanlanmagan (bazaviy stavka) —',
       l_wt:'Partiya vazni, kg (narx tekshiruvi)',wt_ph:'Netto vazn, kg — narx tekshiruvi uchun (ixtiyoriy)',
       price:'Invoys qiymati, USD',qty:'Stavka birligidagi miqdor — ixtiyoriy',
       cert:'Kelib chiqish sertifikati bor (ST-1/EUR.1/Form A)',go:'Hisoblash',
@@ -242,6 +246,7 @@ const L = {
       q_calc:'Product or HS code…',q_code:'Describe the product…',q_wiki:'Search a term…',
       l_code:'HS code',l_price:'Invoice price, $',l_qty:'Quantity (for $/pc, $/kg)',l_inco:'Delivery terms (Incoterms)',
       l_orig:'Country of origin',orig_other:'— other country (base rate) —',
+      orig_ph:'Country or code (e.g. “Rus” or 643)',orig_none:'— none (base rate) —',
       l_wt:'Batch weight, kg (price check)',wt_ph:'Net weight, kg — for understatement check (optional)',
       price:'Invoice value, USD',qty:'Qty in rate unit — optional',
       cert:'Origin certificate available (ST-1/EUR.1/Form A)',go:'Calculate',
@@ -280,11 +285,41 @@ c_q.placeholder=L.q_calc; k_q.placeholder=L.q_code; p_q.placeholder=L.q_perm; w_
 c_price.placeholder=L.price; c_qty.placeholder=L.qty; c_cert_l.textContent=L.cert;
 c_q_l.textContent=L.l_code; c_price_l.textContent=L.l_price; c_inco_l.textContent=L.l_inco; c_qty_l.textContent=L.l_qty;
 c_orig_l.textContent=L.l_orig; c_wt_l.textContent=L.l_wt; c_wt.placeholder=L.wt_ph;
-c_orig.innerHTML=[['',L.orig_other],['Российская Федерация','🇷🇺 Россия'],['Республика Казахстан','🇰🇿 Казахстан'],
-  ['Республика Беларусь','🇧🇾 Беларусь'],['Кыргызская Республика','🇰🇬 Кыргызстан'],['Республика Молдова','🇲🇩 Молдова'],
-  ['Республика Таджикистан','🇹🇯 Таджикистан'],['Республика Азербайджан','🇦🇿 Азербайджан'],['Украина','🇺🇦 Украина'],
-  ['Республика Грузия','🇬🇪 Грузия'],['Туркменистан','🇹🇲 Туркменистан']]
-  .map(o=>`<option value="${o[0]}">${o[1]}</option>`).join('');
+// Полный справочник стран (поиск по первым буквам ИЛИ по цифровому коду ОКСМ). Значение,
+// уходящее на бэкенд (c_orig, hidden) — это ИМЯ страны (чтобы сработала ЗСТ-преференция).
+c_orig_q.placeholder=L.orig_ph;
+let COUNTRIES=[];
+(async()=>{ try{ const d=await api('/api/countries'); COUNTRIES=d.items||[]; }catch(e){} })();
+function origPick(c){
+  c_orig.value=c?c.ru:'';                                  // имя — для расчёта (ЗСТ/КТС)
+  c_orig_q.value=c?(c.code+' · '+c.ru):'';                 // «643 · Российская Федерация»
+  c_orig_sug.innerHTML='';
+}
+c_orig_q.oninput=()=>{
+  const q=c_orig_q.value.trim().toLowerCase();
+  c_orig.value='';                                         // сброс, пока не выбрано из списка
+  if(!q){ c_orig_sug.innerHTML=''; return; }
+  const digit=/^\d+$/.test(q);
+  const hits=COUNTRIES.filter(c=> digit ? String(c.code).startsWith(q)
+                                        : c.ru.toLowerCase().includes(q)).slice(0,10);
+  c_orig_sug.innerHTML='';
+  hits.forEach(c=>{
+    const el=document.createElement('div');
+    el.textContent=(c.zst?'🟢 ':'')+c.code+' · '+c.ru;    // 🟢 — страна ЗСТ (0% по СТ-1)
+    el.onclick=()=>origPick(c);
+    c_orig_sug.appendChild(el);
+  });
+};
+// Напечатал, но не кликнул: при потере фокуса подставляем страну, если совпадение однозначное
+// (иначе расчёт молча ушёл бы по базовой ставке). Задержка — чтобы клик по подсказке успел сработать.
+c_orig_q.onblur=()=>setTimeout(()=>{
+  if(c_orig.value) return;
+  const q=c_orig_q.value.trim().toLowerCase(); if(!q) return;
+  const digit=/^\d+$/.test(q);
+  const hits=COUNTRIES.filter(c=> digit ? String(c.code)===q
+      : (c.ru.toLowerCase()===q || c.ru.toLowerCase().includes(q)));
+  if(hits.length===1) origPick(hits[0]);
+},150);
 c_go.textContent=L.go; c_disc.textContent=''; c_picked.textContent=L.pick; p_picked.textContent=L.p_pick;
 c_transport.placeholder=L.transport; c_ins.placeholder=L.insurance; c_inco_h.textContent=L.inco_h;
 c_inco.innerHTML=L.inco.map(o=>`<option value="${o[0]}">${o[1]}</option>`).join('');
