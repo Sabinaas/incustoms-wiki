@@ -374,12 +374,36 @@ function showTab(p){
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>showTab(t.dataset.p));
 const _it=params.get('tab'); if(['calc','code','perm','wiki'].includes(_it)) showTab(_it);
 
-// --- Тарифы: кнопка «Подробнее» → панель из /api/tariffs (единый источник с ботом) ---
-const _tL={ru:['💎 Тарифы: что бесплатно, что в Unlim','Подключить Unlim — в чате бота: /subscribe'],
-            uz:['💎 Tariflar: nima bepul, nima Unlimда','Unlimни ulash — bot chatida: /subscribe'],
-            en:['💎 Plans: what’s free vs Unlim','Get Unlim — in the bot chat: /subscribe']};
-t_btn.textContent=(_tL[lang]||_tL.ru)[0];
+// --- Тарифы: панель из /api/tariffs + оформление Unlim (заказ → оплата Payme/Click) ---
+const _tL={
+  ru:{btn:'💎 Тарифы: что бесплатно, что в Unlim',oformit:'💎 Оформить Unlim — 77 000 сум/мес',
+      payme:'💳 Оплатить через Payme',click:'💳 Оплатить через Click',wait:'Создаём заказ…',
+      err:'Не удалось. Оформите в чате бота: /subscribe'},
+  uz:{btn:'💎 Tariflar: nima bepul, nima Unlimда',oformit:'💎 Unlimni rasmiylashtirish — 77 000 so‘m/oy',
+      payme:'💳 Payme orqali to‘lash',click:'💳 Click orqali to‘lash',wait:'Buyurtma yaratilmoqda…',
+      err:'Xatolik. Bot chatida rasmiylashtiring: /subscribe'},
+  en:{btn:'💎 Plans: what’s free vs Unlim',oformit:'💎 Get Unlim — 77,000 sum/mo',
+      payme:'💳 Pay with Payme',click:'💳 Pay with Click',wait:'Creating order…',
+      err:'Failed. Subscribe in the bot chat: /subscribe'}};
+const TL=_tL[lang]||_tL.ru;
+t_btn.textContent=TL.btn;
 let _tLoaded=false;
+function openPay(u){ if(tg&&tg.openLink) tg.openLink(u); else window.open(u,'_blank'); }
+async function doSubscribe(){
+  const sub=document.getElementById('t_sub'), pay=document.getElementById('t_pay');
+  sub.disabled=true; pay.textContent=TL.wait;
+  try{
+    const r=await fetch(API+'/api/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({lang,initData:(tg&&tg.initData)||''})});
+    const d=await r.json();
+    if(d.already){ pay.textContent='✅ '+d.message; sub.style.display='none'; return; }
+    if(!d.ok){ pay.textContent=d.message||TL.err; sub.disabled=false; return; }
+    pay.innerHTML=''; sub.style.display='none';
+    [[d.payme_url,TL.payme],[d.click_url,TL.click]].forEach(([u,lbl])=>{ if(!u) return;
+      const b=document.createElement('button'); b.className='go'; b.textContent=lbl;
+      b.style.marginTop='8px'; b.onclick=()=>openPay(u); pay.appendChild(b); });
+  }catch(e){ pay.textContent=TL.err; sub.disabled=false; }
+}
 t_btn.onclick=async()=>{
   const open=t_panel.style.display==='none';
   t_btn.classList.toggle('on',open);
@@ -388,9 +412,11 @@ t_btn.onclick=async()=>{
     t_panel.innerHTML='…';
     try{ const d=await api('/api/tariffs?lang='+encodeURIComponent(lang));
       t_panel.innerHTML=(d.text||'').replace(/\n/g,'<br>')+
-        '<div class="cta">👉 '+(_tL[lang]||_tL.ru)[1]+'</div>';
+        '<button class="go" id="t_sub" style="margin-top:12px">'+TL.oformit+'</button>'+
+        '<div class="cta" id="t_pay"></div>';
+      document.getElementById('t_sub').onclick=doSubscribe;
       _tLoaded=true;
-    }catch(e){ t_panel.innerHTML=(_tL[lang]||_tL.ru)[1]; }
+    }catch(e){ t_panel.innerHTML=TL.err; }
   }
 };
 
