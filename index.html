@@ -377,12 +377,15 @@ const _it=params.get('tab'); if(['calc','code','perm','wiki'].includes(_it)) sho
 // --- Тарифы: панель из /api/tariffs + оформление Unlim (заказ → оплата Payme/Click) ---
 const _tL={
   ru:{btn:'💎 Тарифы: что бесплатно, что в Unlim',oformit:'💎 Оформить Unlim — 77 000 сум/мес',
+      examples:'🚀 Что умеет Unlim (примеры)',
       payme:'💳 Оплатить через Payme',click:'💳 Оплатить через Click',wait:'Создаём заказ…',
       err:'Не удалось. Оформите в чате бота: /subscribe'},
   uz:{btn:'💎 Tariflar: nima bepul, nima Unlimда',oformit:'💎 Unlimni rasmiylashtirish — 77 000 so‘m/oy',
+      examples:'🚀 Unlim nima qila oladi (misollar)',
       payme:'💳 Payme orqali to‘lash',click:'💳 Click orqali to‘lash',wait:'Buyurtma yaratilmoqda…',
       err:'Xatolik. Bot chatida rasmiylashtiring: /subscribe'},
   en:{btn:'💎 Plans: what’s free vs Unlim',oformit:'💎 Get Unlim — 77,000 sum/mo',
+      examples:'🚀 What Unlim can do (examples)',
       payme:'💳 Pay with Payme',click:'💳 Pay with Click',wait:'Creating order…',
       err:'Failed. Subscribe in the bot chat: /subscribe'}};
 const TL=_tL[lang]||_tL.ru;
@@ -411,9 +414,13 @@ t_btn.onclick=async()=>{
   if(open&&!_tLoaded){
     t_panel.innerHTML='…';
     try{ const d=await api('/api/tariffs?lang='+encodeURIComponent(lang));
-      t_panel.innerHTML=(d.text||'').replace(/\n/g,'<br>')+
-        '<button class="go" id="t_sub" style="margin-top:12px">'+TL.oformit+'</button>'+
+      const ex=d.examples_url
+        ? '<button class="go" id="t_ex" style="margin-top:12px;background:#fff;color:var(--brand-dark);border:1.5px solid var(--brand-soft)">'+TL.examples+'</button>'
+        : '';
+      t_panel.innerHTML=(d.text||'').replace(/\n/g,'<br>')+ex+
+        '<button class="go" id="t_sub" style="margin-top:8px">'+TL.oformit+'</button>'+
         '<div class="cta" id="t_pay"></div>';
+      if(d.examples_url) document.getElementById('t_ex').onclick=()=>openPay(d.examples_url);
       document.getElementById('t_sub').onclick=doSubscribe;
       _tLoaded=true;
     }catch(e){ t_panel.innerHTML=TL.err; }
