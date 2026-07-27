@@ -179,8 +179,30 @@ if (tg) {
 }
 const params = new URLSearchParams(location.search);
 const _lp = params.get('lang');
-const lang = (_lp==='uz'||_lp==='en') ? _lp : 'ru';
+// Язык: ?lang= (кнопки бота его передают) → язык клиента Telegram → ru.
+// Кнопка «Открыть приложение» в профиле бота параметр НЕ передаёт, из-за чего приложение всегда
+// открывалось по-русски, хотя словари uz/en есть (аудит IC-07). Ниже, если пользователь выбрал в
+// боте другой язык, чем язык его Telegram, один раз перезагружаемся с ?lang= из профиля.
+const _tgl = ((tg && tg.initDataUnsafe && tg.initDataUnsafe.user
+               && tg.initDataUnsafe.user.language_code) || '').slice(0,2).toLowerCase();
+const lang = (_lp==='uz'||_lp==='en'||_lp==='ru') ? _lp
+           : (_tgl==='uz' ? 'uz' : (_tgl==='en' ? 'en' : 'ru'));
 document.documentElement.lang = lang;
+// Синхронизация с языком, выбранным в боте (источник правды). Только когда ?lang= не задан и
+// синхронизация ещё не выполнялась (_ls=1) — защита от циклической перезагрузки.
+if (!_lp && !params.get('_ls') && tg && tg.initData) {
+  fetch(API + '/api/me', {method:'POST', headers:{'Content-Type':'application/json'},
+                          body: JSON.stringify({initData: tg.initData})})
+    .then(r => r.json())
+    .then(d => {
+      const bl = d && d.lang;
+      if (bl && bl !== lang) {
+        params.set('lang', bl); params.set('_ls', '1');
+        location.replace(location.pathname + '?' + params.toString() + location.hash);
+      }
+    })
+    .catch(() => {});   // сеть/БД недоступны — остаёмся на языке клиента Telegram
+}
 
 const L = {
   ru:{tag:'Таможенный помощник: расчёт · код ТН ВЭД · документы',calc:'💰 Расчёт',code:'🔎 Код',wiki:'📚 Вики',
