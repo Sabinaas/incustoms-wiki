@@ -229,7 +229,7 @@ const L = {
       terms:n=>n+' терминов',empty:'Ничего не найдено',need:'Укажите код и стоимость',tochat:'Оформить в чате бота',
       pdf:'📄 Скачать PDF',pdf_wait:'Готовим PDF…',pdf_ok:'📄 PDF отправлен в чат с ботом.',pdf_up:'Оформить тариф в чате',
       npa_title:'Правовые основания',
-      perm:'📋 Док-ты',h_perm:'Разрешительные документы',q_perm:'Товар или код ТН ВЭД…',
+      perm:'📋 Док-ты',more_btn:'Показать ещё',h_perm:'Разрешительные документы',q_perm:'Товар или код ТН ВЭД…',
       p_pick:'Введите товар и выберите код из подсказок',
       conf_t:'Подтверждение соответствия',sanit_t:'Санитарно-эпидемиологическое заключение',
       mark_t:'Цифровая маркировка',req_t:'Дополнительные требования',
@@ -263,7 +263,7 @@ const L = {
       terms:n=>n+' ta atama',empty:'Hech narsa topilmadi',need:'Kod va qiymatni kiriting',tochat:'Bot chatida rasmiylashtirish',
       pdf:'📄 PDF yuklab olish',pdf_wait:'PDF tayyorlanmoqda…',pdf_ok:'📄 PDF bot chatiga yuborildi.',pdf_up:'Chatda tarif rasmiylashtirish',
       npa_title:'Huquqiy asoslar',
-      perm:'📋 Hujjat',h_perm:'Ruxsat beruvchi hujjatlar',q_perm:'Tovar yoki TIF TN kodi…',
+      perm:'📋 Hujjat',more_btn:'Yana koʻrsatish',h_perm:'Ruxsat beruvchi hujjatlar',q_perm:'Tovar yoki TIF TN kodi…',
       p_pick:'Tovarni kiriting va kodni tanlang',
       conf_t:'Muvofiqlikni tasdiqlash',sanit_t:'Sanitariya-epidemiologik xulosa',
       mark_t:'Raqamli markirovka',req_t:'Qo\'shimcha talablar',
@@ -297,7 +297,7 @@ const L = {
       terms:n=>n+' terms',empty:'Nothing found',need:'Enter code and value',tochat:'Open in bot chat',
       pdf:'📄 Download PDF',pdf_wait:'Preparing PDF…',pdf_ok:'📄 PDF sent to your bot chat.',pdf_up:'Get a plan in the chat',
       npa_title:'Legal basis',
-      perm:'📋 Docs',h_perm:'Required permits & documents',q_perm:'Product or HS code…',
+      perm:'📋 Docs',more_btn:'Show more',h_perm:'Required permits & documents',q_perm:'Product or HS code…',
       p_pick:'Enter a product and pick a code',
       conf_t:'Conformity assessment',sanit_t:'Sanitary-epidemiological certificate',
       mark_t:'Digital marking',req_t:'Additional requirements',
@@ -548,10 +548,16 @@ c_go.onclick=async()=>{
 };
 
 // ---- КОД ----
-k_q.oninput=debounce(async()=>{
+let k_limit=30;                       // сколько показываем; «показать ещё» поднимает лимит
+const runCodeSearch=async()=>{
   const q=k_q.value.trim(); if(q.length<2){k_list.innerHTML='';k_cnt.textContent='';return}
-  const d=await api('/api/search?q='+encodeURIComponent(q));
-  k_cnt.textContent=d.items.length?d.items.length+'':L.empty;
+  const d=await api('/api/search?q='+encodeURIComponent(q)+'&limit='+k_limit);
+  // Показываем НАЙДЕНО/ПОКАЗАНО: раньше выводилась длина выдачи, и человек думал, что видит всё,
+  // хотя список молча обрезался (аудит FREE-04).
+  const _total=(d.total!=null?d.total:d.items.length);
+  k_cnt.textContent=d.items.length
+    ? (_total>d.items.length ? d.items.length+' / '+_total : ''+_total)
+    : L.empty;
   k_list.innerHTML=d.items.map((i,idx)=>
     `<div class="item"><div class="term" data-i="${idx}"><span><span class="code">${i.code}</span> <span class="name">${(i.name||'')}</span></span><span class="arrow">›</span></div><div class="body" id="kb${idx}"></div></div>`
   ).join('');
@@ -562,12 +568,26 @@ k_q.oninput=debounce(async()=>{
       bd.dataset.done='1'; bd.textContent='…';
       const code=d.items[t.dataset.i].code;
       const rd=await api('/api/rates?code='+code);
-      const du=(rd.rates&&rd.rates.duty)||{};
-      bd.innerHTML=`<div class="line"><span>Пошлина</span><b>${du.label||(du.advalorem_pct??'—')+'%'}</b></div>`+
-        `<div class="line"><span>НДС</span><b>${rd.rates&&rd.rates.vat_exempt?'освобождён':((rd.rates&&rd.rates.vat_pct)||12)+'%'}</b></div>`+
+      const R=(rd.rates)||{}; const du=R.duty||{};
+      // Паритет с ботом: акциз, органы по коду и основание с датой сверки. Раньше приложение
+      // показывало только пошлину и НДС, а внизу стояло «Ориентировочно, точно — в чате бота»,
+      // то есть бесплатный справочник сам объявлял себя неточным (аудит FREE-13).
+      const _exc=(R.excise&&R.excise.label)||'';
+      const excTxt=(!_exc||_exc==='не установлен')?'не подакцизный':_exc;
+      const CB=R.cert_bodies||{}; const bodies=(CB.matched||[]);
+      const bodiesHtml=bodies.length
+        ? `<div class="line" style="align-items:flex-start"><span>Органы</span><b style="text-align:right">`+
+          bodies.slice(0,3).map(b=>`${esc(b.name||'')}${b.email?' · '+esc(b.email):''}`).join('<br>')+
+          (CB.total>3?`<br>…ещё ${CB.total-3}`:'')+`</b></div>`
+        : '';
+      const npa=[].concat(R.duty&&R.duty.npa?[R.duty.npa]:[], R.excise&&R.excise.npa?[R.excise.npa]:[]);
+      bd.innerHTML=`<div class="line"><span>Пошлина</span><b>${esc(du.label||((du.advalorem_pct??'—')+'%'))}</b></div>`+
+        `<div class="line"><span>Акциз</span><b>${esc(excTxt)}</b></div>`+
+        `<div class="line"><span>НДС</span><b>${R.vat_exempt?'освобождён':((R.vat_pct)||12)+'%'}</b></div>`+
+        bodiesHtml+
         `<button class="subbtn" data-code="${code}" style="margin:6px 0;padding:6px 12px;border:1px solid var(--brand-soft,#e2f5e9);border-radius:10px;background:transparent;color:var(--brand,#16a34a);font-weight:600;cursor:pointer">📂 Подкоды группы</button>`+
         `<div class="subs"></div>`+
-        `<div class="hint">Ориентировочно. Точно — в чате бота.</div>`;
+        `<div class="hint">${npa.length?'Основание: '+esc(npa.join(', ')):''}${CB.checked_at?' · органы сверены '+esc(CB.checked_at):''}</div>`;
       bd.querySelector('.subbtn').onclick=async(e)=>{
         const box=bd.querySelector('.subs');
         if(box.dataset.done){box.innerHTML='';box.dataset.done='';return;}
@@ -588,7 +608,17 @@ k_q.oninput=debounce(async()=>{
       };
     }
   });
-},250);
+  // «Показать ещё»: выдача обрезалась молча, и человек считал, что видит всё (аудит FREE-04).
+  if(_total>d.items.length){
+    const more=document.createElement('button');
+    more.className='subbtn';
+    more.style.cssText='margin:8px 0;padding:8px 14px;border:1px solid var(--brand-soft,#e2f5e9);border-radius:10px;background:transparent;color:var(--brand,#16a34a);font-weight:600;cursor:pointer;width:100%';
+    more.textContent=(L.more_btn||'Показать ещё')+' ('+(_total-d.items.length)+')';
+    more.onclick=()=>{ k_limit=Math.min(k_limit+50,200); more.textContent='…'; runCodeSearch(); };
+    k_list.appendChild(more);
+  }
+};
+k_q.oninput=debounce(()=>{ k_limit=30; runCodeSearch(); },250);
 
 // ---- РАЗРЕШИТЕЛЬНЫЕ ----
 const esc=s=>(s||'').replace(/</g,'&lt;');
