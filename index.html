@@ -233,6 +233,8 @@ const L = {
       p_pick:'Введите товар и выберите код из подсказок',
       conf_t:'Подтверждение соответствия',sanit_t:'Санитарно-эпидемиологическое заключение',
       mark_t:'Цифровая маркировка',req_t:'Дополнительные требования',
+      certs_t:'Разрешительные документы',other_t:'Иные требования',lgota_t:'Льготы',
+      checked_t:'Данные сверены',
       form_cert:'Обязательная сертификация (сертификат соответствия)',
       form_decl:'Декларирование соответствия (декларация о соответствии)',
       no_conf:'По перечням ПКМ-43 обязательное подтверждение соответствия не выявлено.',
@@ -267,6 +269,8 @@ const L = {
       p_pick:'Tovarni kiriting va kodni tanlang',
       conf_t:'Muvofiqlikni tasdiqlash',sanit_t:'Sanitariya-epidemiologik xulosa',
       mark_t:'Raqamli markirovka',req_t:'Qo\'shimcha talablar',
+      certs_t:'Ruxsat beruvchi hujjatlar',other_t:'Boshqa talablar',lgota_t:'Imtiyozlar',
+      checked_t:'Ma\'lumotlar sverkasi',
       form_cert:'Majburiy sertifikatlash (muvofiqlik sertifikati)',
       form_decl:'Muvofiqlikni deklaratsiyalash (muvofiqlik deklaratsiyasi)',
       no_conf:'VM 43-son ro\'yxatlari bo\'yicha majburiy tasdiqlash aniqlanmadi.',
@@ -301,6 +305,8 @@ const L = {
       p_pick:'Enter a product and pick a code',
       conf_t:'Conformity assessment',sanit_t:'Sanitary-epidemiological certificate',
       mark_t:'Digital marking',req_t:'Additional requirements',
+      certs_t:'Required permits',other_t:'Other requirements',lgota_t:'Exemptions',
+      checked_t:'Data verified on',
       form_cert:'Mandatory certification (certificate of conformity)',
       form_decl:'Declaration of conformity',
       no_conf:'No mandatory conformity assessment found in the PKM-43 lists.',
@@ -642,7 +648,17 @@ async function permLoad(code){
     h+='<div class="line total" style="font-size:15px"><span>'+L.req_t+'</span><span></span></div>';
     d.requirements.forEach(r=>{ h+='<div class="line"><span>'+esc(r.permit)+'</span><b class="sec">'+esc(r.npa)+'</b></div>'; });
   }
+  // Справочник требований (тот же, что в карточке чата): раньше приложение его не показывало
+  // и по кофе выдавало 2 пункта против 8 в боте.
+  const block=(title,items)=>{
+    if(!items||!items.length) return '';
+    let x='<div class="line total" style="font-size:15px"><span>'+title+'</span><span></span></div>';
+    items.forEach(t=>{ x+='<div class="hint" style="margin:4px 0">• '+esc(t)+'</div>'; });
+    return x;
+  };
+  h+=block(L.certs_t,d.certs)+block(L.lgota_t,d.lgota)+block(L.other_t,d.other);
   if(!d.found) h+='<div class="hint">'+L.not_found+'</div>';
+  if(d.checked_at) h+='<div class="hint">'+L.checked_t+': '+esc(d.checked_at)+'</div>';
   h+='</div>';
   h+='<div class="hint">'+L.perm_cav+'</div>';
   h+='<div class="hint">'+L.src+': '+esc(d.source||'')+'</div>';
