@@ -493,7 +493,8 @@ c_go.onclick=async()=>{
   const d=await r.json();
   if(d.gated){
     c_disc.textContent='';
-    c_out.innerHTML='<div class="card">'+(d.message||'')+
+    // Сообщение приходит с переносами строк (витрина состава расчёта) — сохраняем их.
+    c_out.innerHTML='<div class="card"><div style="white-space:pre-line">'+(d.message||'')+'</div>'+
       '<button class="go" id="c_pay" style="margin-top:12px">'+L.tochat+'</button></div>';
     const pb=document.getElementById('c_pay'); if(pb) pb.onclick=()=>{ if(tg) tg.close(); };
     return;
@@ -511,6 +512,10 @@ c_go.onclick=async()=>{
   const totalPay=res['ИТОГО платежей'];
   if(totalPay!==undefined)
     h+=`<div class="line total"><span>${L.total}</span><b>${fmt(totalPay)} сум</b></div>`;
+  // Расчёт неполный (нет объёма двигателя для ставки за куб. см, веса для «$/кг» и т.п.).
+  // Показываем ДО итога-впечатления: жирная сумма без этой пометки читается как окончательная.
+  if(d.warnings&&d.warnings.length)
+    h+='<div class="line" style="color:#d33;font-weight:600">⚠️ '+d.warnings.join(' ')+'</div>';
   // То, что знает чат: риск КТС (занижение цены), разрешительные, маркировка.
   if(d.kts&&d.kts.note) h+='<div class="line" style="color:#d33;font-weight:600">'+d.kts.note+'</div>';
   if(d.permits&&d.permits.length) h+='<div class="hint">📋 Разрешительные: '+d.permits.map(p=>p.permit+(p.npa?' ('+p.npa+')':'')).join('; ')+'</div>';
