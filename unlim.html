@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Unlim — InCustom-Helper</title>
+<!--
+  Страница возможностей Unlim. Открывается из бота по кнопке «💎 Возможности Unlim».
+
+  Кнопки оплаты ведут в бот с параметром start=pay_unlim, а не напрямую в Payme/Click.
+  Причина: платёж должен быть привязан к заказу и Telegram ID, иначе после оплаты некому
+  включить подписку — вебхук не поймёт, кому её выдавать. Бот по этому параметру сразу
+  открывает экран оплаты со ссылками Payme и Click (см. commands.start).
+-->
+<style>
+  :root{
+    --bg:#F1EBDD; --ink:#0F3A2A; --brand:#14503A; --accent:#C2521A; --mint:#7BD8A0;
+    --card:#FFFFFF; --muted:rgba(15,58,42,.62); --line:rgba(15,58,42,.12);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{ --bg:#0E1512; --ink:#E9F1EC; --card:#16211C; --muted:rgba(233,241,236,.66);
+           --line:rgba(233,241,236,.14); --brand:#7BD8A0; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+       padding:22px 16px 40px;-webkit-text-size-adjust:100%}
+  .wrap{max-width:640px;margin:0 auto}
+  .kicker{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+  h1{font-size:28px;line-height:1.15;letter-spacing:-.02em;margin:6px 0 10px}
+  .lead{font-size:17px;color:var(--muted);margin:0 0 22px}
+  .price{display:flex;align-items:baseline;gap:10px;margin:0 0 4px}
+  .price b{font-size:44px;letter-spacing:-.03em;line-height:1}
+  .price span{color:var(--muted)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;
+        padding:18px 18px 6px;margin:0 0 16px}
+  .card h2{font-size:15px;letter-spacing:.02em;margin:0 0 12px;text-transform:uppercase;color:var(--muted)}
+  .item{padding:0 0 14px;margin:0 0 14px;border-bottom:1px solid var(--line)}
+  .item:last-child{border-bottom:0}
+  .item b{display:block;font-size:16px;margin:0 0 4px}
+  .item p{margin:0;font-size:15px;color:var(--muted)}
+  .free{background:transparent;border-style:dashed}
+  .free .item b{font-weight:600}
+  .pay{display:flex;flex-direction:column;gap:10px;margin:22px 0 10px}
+  .btn{display:block;text-align:center;text-decoration:none;font-weight:600;font-size:17px;
+       padding:16px 18px;border-radius:999px;border:1px solid transparent}
+  .btn-primary{background:var(--accent);color:#FFF8F0}
+  .btn-second{background:transparent;color:var(--ink);border-color:var(--line)}
+  .note{font-size:13px;color:var(--muted);margin:14px 0 0}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">InCustom-Helper</div>
+  <h1>Unlim: сколько платить именно вам</h1>
+  <p class="lead">Справочник отвечает, какая ставка. Unlim отвечает, сколько вы заплатите
+     по своей поставке — и где рискуете попасть на доначисление.</p>
+
+  <div class="price"><b>77 000</b><span>сум / месяц</span></div>
+  <p class="lead">Без лимита на число запросов. Отмена в один клик — справочник останется бесплатным.</p>
+
+  <div class="card">
+    <h2>Что открывает подписка</h2>
+    <div class="item"><b>Итоговая сумма по вашей партии</b>
+      <p>Со всеми составляющими: специфика за единицу и «но не менее», акциз, утилизационный
+         сбор по объёму двигателя и возрасту, доп. пошлина 5% без сертификата происхождения,
+         Incoterms и курс ЦБ. Именно эти части теряются при счёте в столбик.</p></div>
+    <div class="item"><b>Обоснование кода по ОПИ</b>
+      <p>Опишите товар словами или пришлите инвойс. Внутри одной позиции ставки расходятся:
+         у авто подкод <code>…19 41</code> — 15% плюс $0,8 за куб. см, а <code>…19 49</code> —
+         30% плюс $2,5. Одна цифра меняет сумму.</p></div>
+    <div class="item"><b>Проверка цены на риск КТС до подачи</b>
+      <p>Сравниваем вашу цену со статистикой деклараций — минимум и медиана по стране
+         происхождения. Цена ниже — скажем прямо, пока это ещё можно поправить.</p></div>
+    <div class="item"><b>Пересчёт, когда ставка изменилась</b>
+      <p>О самом изменении по вашим кодам сообщим бесплатно. В Unlim сразу считаем последствия:
+         насколько выросла сумма и что править в контракте.</p></div>
+    <div class="item"><b>PDF со ссылками на акты</b>
+      <p>Документ для бухгалтера, брокера или банка, а не скриншот чата.</p></div>
+    <div class="item"><b>Память профиля</b>
+      <p>Не нужно объяснять контекст заново каждый раз. Всё на трёх языках, включая ответ ИИ.</p></div>
+  </div>
+
+  <div class="card free">
+    <h2>Остаётся бесплатным навсегда</h2>
+    <div class="item"><b>Справочник по коду ТН ВЭД</b>
+      <p>Ставки пошлины, акциза и НДС, разрешительные документы и лицензии со ссылкой на НПА,
+         льготы и иные требования.</p></div>
+    <div class="item"><b>Поиск кода, подкоды группы, «какой код именно мой»</b>
+      <p>Разбор различий между похожими подкодами по правилам ОПИ.</p></div>
+    <div class="item"><b>Аккредитованные органы сертификации</b>
+      <p>По официальному реестру akkred.uz: 87 органов с телефонами, e-mail и сроком аккредитации.</p></div>
+    <div class="item"><b>ВЭД Вики и курс ЦБ каждое утро</b>
+      <p>62 термина простым языком, с примерами из практики.</p></div>
+  </div>
+
+  <div class="pay">
+    <a class="btn btn-primary" href="https://t.me/incustom_helper_bot?start=pay_unlim">
+      Оплатить через Payme или Click</a>
+    <a class="btn btn-second" href="https://t.me/incustom_helper_bot">Вернуться в бот</a>
+  </div>
+  <p class="note">Оплата картой проходит в Telegram: бот откроет ссылку Payme или Click на ваш
+     платёж, доступ включится автоматически. Подписка привязывается к вашему Telegram-аккаунту,
+     поэтому оплата начинается из бота.</p>
+  <p class="note">ИП ООО «Infinity Intertrade» · ISO 9001:2015 · incustoms.uz · @incustoms_uz</p>
+</div>
+</body>
+</html>
