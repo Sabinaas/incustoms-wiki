@@ -129,10 +129,12 @@
   <div class="sug" id="c_orig_sug"></div>
   <label class="row"><input type="checkbox" id="c_cert"><span id="c_cert_l">Есть сертификат происхождения (СТ-1/форма А)</span></label>
   <div id="c_util" style="display:none">
-    <div class="hint" id="c_util_h">🚗 Утилизационный сбор</div>
+    <div class="hint" id="c_util_h">🚗 Транспортное средство</div>
     <select id="c_eng"></select>
     <select id="c_age"></select>
     <input id="c_uval" type="number" inputmode="decimal">
+    <input id="c_years" type="number" inputmode="numeric" style="display:none">
+    <div class="hint" id="c_util_why"></div>
   </div>
   <button class="go" id="c_go">Рассчитать</button>
   <div id="c_out"></div>
@@ -219,10 +221,15 @@ const L = {
       inco:[['EXW','EXW — самовывоз, все расходы на покупателе'],['FCA','FCA — передача перевозчику, фрахт на покупателе'],['FAS','FAS — вдоль борта судна, фрахт на покупателе'],['FOB','FOB — на борту судна, фрахт на покупателе'],['CFR','CFR — фрахт включён, страховка нет'],['CIF','CIF — фрахт и страховка включены'],['CPT','CPT — перевозка включена, страховка нет'],['CIP','CIP — перевозка и страховка включены'],['DAP','DAP — доставка до места (без выгрузки)'],['DPU','DPU — доставка с выгрузкой'],['DDP','DDP — доставка с оплатой пошлин']],
       inco_h:'Таможенная стоимость = инвойс + транспорт до границы + страховка (то, что ещё не в цене по Incoterms).',
       cust:'Таможенная стоимость',
-      util_h:'🚗 Утилизационный сбор (для транспорта)',
+      util_h:'🚗 Транспортное средство — заполните, иначе расчёт будет неполным',
       eng:[['ice','Двигатель: ДВС'],['electric','Двигатель: электро'],['hybrid','Двигатель: гибрид']],
       age:[['used','Возраст: б/у (старше 3 лет)'],['new','Возраст: новое (до 3 лет)']],
       uval_vol:'Объём двигателя, см³',uval_mass:'Полная масса, т',uval_pow:'Мощность, кВт',
+      uyears:'Возраст, полных лет (для утильсбора)',
+      util_why_vol:'От объёма двигателя зависят ДВЕ суммы: специфическая часть пошлины (например $0,8 за куб. см) и утилизационный сбор. Без него итог будет занижен в разы.',
+      util_why_mass:'От полной массы зависит утилизационный сбор.',
+      util_why_pow:'От мощности зависит утилизационный сбор.',
+      need_vol:'Укажите объём двигателя в см³ — от него зависит и пошлина, и утильсбор.',
       util_line:'Утилизационный сбор',util_grand:'Всего с утильсбором',
       total:'ИТОГО платежей',rate:'Курс ЦБ',
       disc:'Ориентировочно. Точный расчёт с учётом акцизов, льгот и режима страны — в чате бота.',
@@ -255,10 +262,15 @@ const L = {
       inco:[['EXW','EXW — o\'zi olib ketish, barcha xarajat xaridorda'],['FCA','FCA — tashuvchiga topshirish, fraxt xaridorda'],['FAS','FAS — kema yonida, fraxt xaridorda'],['FOB','FOB — kema bortida, fraxt xaridorda'],['CFR','CFR — fraxt bor, sug\'urta yo\'q'],['CIF','CIF — fraxt va sug\'urta kiritilgan'],['CPT','CPT — tashish bor, sug\'urta yo\'q'],['CIP','CIP — tashish va sug\'urta kiritilgan'],['DAP','DAP — joyga yetkazish (tushirishsiz)'],['DPU','DPU — tushirish bilan yetkazish'],['DDP','DDP — boj to\'lab yetkazish']],
       inco_h:'Bojxona qiymati = invoys + chegaragacha transport + sug\'urta (Incoterms bo\'yicha narxda yo\'q qismi).',
       cust:'Bojxona qiymati',
-      util_h:'🚗 Utilizatsiya yig\'imi (transport uchun)',
+      util_h:'🚗 Transport vositasi — toʻldiring, aks holda hisob toʻliq boʻlmaydi',
       eng:[['ice','Dvigatel: IYoD'],['electric','Dvigatel: elektro'],['hybrid','Dvigatel: gibrid']],
       age:[['used','Yoshi: ishlatilgan (3 yildan katta)'],['new','Yoshi: yangi (3 yilgacha)']],
       uval_vol:'Dvigatel hajmi, sm³',uval_mass:'To\'liq massa, t',uval_pow:'Quvvat, kVt',
+      uyears:'Yoshi, toʻliq yil (utilizatsiya yigʻimi uchun)',
+      util_why_vol:'Dvigatel hajmiga IKKI summa bogʻliq: bojning spetsifik qismi (masalan, har kub. sm uchun $0,8) va utilizatsiya yigʻimi. Usiz yakun bir necha barobar kam chiqadi.',
+      util_why_mass:'Utilizatsiya yigʻimi toʻliq massaga bogʻliq.',
+      util_why_pow:'Utilizatsiya yigʻimi quvvatga bogʻliq.',
+      need_vol:'Dvigatel hajmini sm³ da koʻrsating — bojga ham, utilizatsiya yigʻimiga ham taʼsir qiladi.',
       util_line:'Utilizatsiya yig\'imi',util_grand:'Utilizatsiya bilan jami',
       total:'JAMI to\'lovlar',rate:'MB kursi',
       disc:'Taxminan. Aniq hisob — bot chatida.',
@@ -291,10 +303,15 @@ const L = {
       inco:[['EXW','EXW — ex works, buyer bears all costs'],['FCA','FCA — free carrier, buyer pays freight'],['FAS','FAS — free alongside ship, buyer pays freight'],['FOB','FOB — free on board, buyer pays freight'],['CFR','CFR — freight included, no insurance'],['CIF','CIF — freight & insurance included'],['CPT','CPT — carriage included, no insurance'],['CIP','CIP — carriage & insurance included'],['DAP','DAP — delivered at place (not unloaded)'],['DPU','DPU — delivered unloaded'],['DDP','DDP — delivered duty paid']],
       inco_h:'Customs value = invoice + freight to border + insurance (whatever is not yet in the price per Incoterms).',
       cust:'Customs value',
-      util_h:'🚗 Recycling fee (for vehicles)',
+      util_h:'🚗 Vehicle — fill this in, otherwise the calculation is incomplete',
       eng:[['ice','Engine: ICE'],['electric','Engine: electric'],['hybrid','Engine: hybrid']],
       age:[['used','Age: used (over 3 years)'],['new','Age: new (up to 3 years)']],
       uval_vol:'Engine volume, cm³',uval_mass:'Gross weight, t',uval_pow:'Power, kW',
+      uyears:'Age, full years (for the recycling fee)',
+      util_why_vol:'Engine volume drives TWO amounts: the specific part of the duty (e.g. $0.8 per cu. cm) and the recycling fee. Without it the total is understated several times over.',
+      util_why_mass:'The recycling fee depends on the gross weight.',
+      util_why_pow:'The recycling fee depends on the power output.',
+      need_vol:'Enter the engine volume in cm³ — it drives both the duty and the recycling fee.',
       util_line:'Recycling fee',util_grand:'Total incl. recycling',
       total:'TOTAL payments',rate:'CB rate',
       disc:'Estimate. Exact calc with excise, exemptions and country regime — in the bot chat.',
@@ -377,20 +394,32 @@ function incoUpd(){
 }
 c_inco.value='CIF'; c_inco.onchange=incoUpd; incoUpd();  // дефолт CIF — без доп. полей
 
-// --- Утилизационный сбор: блок виден только для транспортных кодов (8701–8705, 8716) ---
+// --- Транспорт: блок виден только для транспортных кодов (8701–8705, 8716) ---
+// Раньше блок назывался «Утилизационный сбор» и читался как необязательный. Но объём двигателя
+// определяет ещё и специфическую часть пошлины ($0,8 за куб. см) — без него итог занижался в разы,
+// а жирное «ИТОГО» выглядело окончательным (тест Mini App 29.07.2026). Теперь объём обязателен.
 c_util_h.textContent=L.util_h;
 c_eng.innerHTML=L.eng.map(o=>`<option value="${o[0]}">${o[1]}</option>`).join('');
 c_age.innerHTML=L.age.map(o=>`<option value="${o[0]}">${o[1]}</option>`).join('');
+c_years.placeholder=L.uyears;
 let utilField='volume_cm3';
 function utilUpdate(){
   const code=(pickedCode||c_q.value||'').replace(/\s/g,'');
   const veh=/^(8701|8702|8703|8704|8705|8716)/.test(code);
   c_util.style.display=veh?'block':'none';
   if(!veh) return;
-  if(code.startsWith('8704')){utilField='mass_t'; c_uval.placeholder=L.uval_mass;}
-  else if(code.startsWith('8701')){utilField='power_kw'; c_uval.placeholder=L.uval_pow;}
-  else {utilField='volume_cm3'; c_uval.placeholder=L.uval_vol;}
+  if(code.startsWith('8704')){utilField='mass_t'; c_uval.placeholder=L.uval_mass; c_util_why.textContent=L.util_why_mass;}
+  else if(code.startsWith('8701')){utilField='power_kw'; c_uval.placeholder=L.uval_pow; c_util_why.textContent=L.util_why_pow;}
+  else {utilField='volume_cm3'; c_uval.placeholder=L.uval_vol; c_util_why.textContent=L.util_why_vol;}
+  // Возраст в полных годах нужен только для б/у: от него зависит коэффициент утильсбора.
+  ageUpd();
 }
+function ageUpd(){
+  const used=c_age.value==='used';
+  c_years.style.display=(c_util.style.display!=='none'&&used)?'block':'none';
+  if(!used) c_years.value='';
+}
+c_age.onchange=ageUpd;
 
 // вкладки
 function showTab(p){
@@ -463,8 +492,10 @@ async function api(path){const r=await fetch(API+path);return r.json()}
 let pickedCode=null;
 const csug=debounce(async()=>{
   const q=c_q.value.trim();
-  if(/^\d[\d\s]{3,}$/.test(q)){pickedCode=q.replace(/\s/g,'');c_sug.style.display='none';return}
-  if(q.length<2){c_sug.style.display='none';return}
+  // Ввели цифры руками — это и есть код. Подпись под полем обновляем сразу: раньше она отставала
+  // и показывала прошлый код, пока в поле стоял новый (тест 29.07.2026).
+  if(/^\d[\d\s]{3,}$/.test(q)){pickedCode=q.replace(/\s/g,'');c_picked.textContent='Код: '+pickedCode;c_sug.style.display='none';return}
+  if(q.length<2){pickedCode=null;c_picked.textContent='';c_sug.style.display='none';return}
   const d=await api('/api/search?q='+encodeURIComponent(q));
   c_sug.innerHTML=d.items.slice(0,6).map(i=>`<div data-c="${i.code}">${i.code} — ${(i.name||'').slice(0,60)}</div>`).join('');
   c_sug.style.display=d.items.length?'block':'none';
@@ -480,13 +511,24 @@ c_go.onclick=async()=>{
   // Таможенная стоимость = инвойс + транспорт до границы + страховка (то, что не в цене по Incoterms).
   const cust=inv+(parseFloat(c_transport.value)||0)+(parseFloat(c_ins.value)||0);
   if(!/^\d{4,}$/.test(code)||!cust){c_out.innerHTML='<div class="empty">'+L.need+'</div>';return}
+  // Транспорт без объёма двигателя не считаем: специфическая часть пошлины ($/куб. см) и утильсбор
+  // просто не начислятся, а человек уедет с суммой, заниженной в разы. Лучше попросить цифру.
+  const veh=c_util.style.display!=='none';
+  if(veh&&utilField==='volume_cm3'&&!(parseFloat(c_uval.value)>0)){
+    c_out.innerHTML='<div class="card"><div class="line" style="color:#d33;font-weight:600">⚠️ '+L.need_vol+'</div></div>';
+    c_uval.focus(); return;
+  }
   c_out.innerHTML='<div class="empty">…</div>';
   const body={code,price_usd:cust,qty:parseFloat(c_qty.value)||0,has_certificate:c_cert.checked,
       origin_country:c_orig.value,weight_kg:parseFloat(c_wt.value)||0,lang,initData:(tg&&tg.initData)||''};
-  // Утильсбор: для транспортных кодов добавляем двигатель/возраст + характеристику.
-  if(c_util.style.display!=='none'){
+  // Транспорт: двигатель, возраст и характеристику (объём/масса/мощность) — они влияют и на
+  // пошлину, и на утильсбор. Возраст в полных годах задаёт коэффициент по ПКМ №347.
+  if(veh){
     body.engine_type=c_eng.value; body.is_new=(c_age.value==='new');
     const uv=parseFloat(c_uval.value); if(uv) body[utilField]=uv;
+    const yr=parseFloat(c_years.value); if(yr>=0) body.age_years=yr;
+    // Число машин: для ставки за куб. см объём умножается на количество (по умолчанию одна).
+    if(!body.qty) body.qty=1;
   }
   const r=await fetch(API+'/api/calc',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify(body)});
