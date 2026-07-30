@@ -635,7 +635,7 @@ k_q.oninput=debounce(()=>{ k_limit=30; runCodeSearch(); },250);
 const esc=s=>(s||'').replace(/</g,'&lt;');
 async function permLoad(code){
   p_out.innerHTML='<div class="empty">…</div>';
-  const d=await api('/api/permits?code='+encodeURIComponent(code));
+  const d=await api('/api/permits?code='+encodeURIComponent(code)+'&lang='+lang);
   let h='<div class="card">';
   if(d.name) h+='<div class="hint">'+esc(d.name)+'</div>';
   // Подтверждение соответствия
