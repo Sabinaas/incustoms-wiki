@@ -776,6 +776,41 @@ function wrender(q){
 w_q.oninput=()=>wrender(w_q.value);
 wrender('');
 
+// ---- ПАМЯТЬ ФОРМЫ РАСЧЁТА ----
+// Mini App закрывается по любому переходу в чат, и при повторном открытии форма была пустой:
+// код, цену, Incoterms и страну приходилось вводить заново (тест 29.07.2026). Держим последний
+// ввод в localStorage. Это черновик формы, не деньги и не доступ — состоянию бота не противоречит.
+const FORM_KEY='ic_calc_form_v1';
+const FORM_FIELDS=['c_q','c_price','c_inco','c_transport','c_ins','c_qty','c_wt','c_orig_q',
+                   'c_orig','c_eng','c_age','c_uval','c_years'];
+function formSave(){
+  try{
+    const d={};
+    FORM_FIELDS.forEach(id=>{const el=document.getElementById(id); if(el&&el.value) d[id]=el.value});
+    d.c_cert=c_cert.checked; d.picked=pickedCode||'';
+    // Подпись чекбокса зависит от страны (СТ-1 / EUR.1 / Form A) и ставится при выборе из списка.
+    // Список стран загружается асинхронно, поэтому проще сохранить готовую подпись, чем пересобирать.
+    d.cert_l=c_cert_l.textContent||'';
+    localStorage.setItem(FORM_KEY,JSON.stringify(d));
+  }catch(e){/* приватный режим / нет квоты — молча живём без памяти */}
+}
+function formRestore(){
+  // Ссылка из чата важнее сохранённого черновика: если в URL есть код, восстановление пропускаем,
+  // иначе старый код перебил бы тот, который человек только что открыл в боте.
+  if(params.get('code')) return;
+  let d=null;
+  try{ d=JSON.parse(localStorage.getItem(FORM_KEY)||'null'); }catch(e){ d=null }
+  if(!d) return;
+  FORM_FIELDS.forEach(id=>{const el=document.getElementById(id); if(el&&d[id]!=null) el.value=d[id]});
+  c_cert.checked=!!d.c_cert;
+  if(d.picked){ pickedCode=d.picked; c_picked.textContent='Код: '+d.picked; }
+  if(d.cert_l) c_cert_l.textContent=d.cert_l;
+  incoUpd(); utilUpdate();
+}
+document.getElementById('pcalc').addEventListener('input',()=>formSave());
+document.getElementById('pcalc').addEventListener('change',()=>formSave());
+formRestore();
+
 // ---- МОСТ ИЗ ЧАТА (deep-link): префилл кода и авто-запуск нужной вкладки ----
 // ИИ в чате даёт ссылку вида ...?tab=perm&code=XXXX (или calc&code&price&qty&cert=1),
 // пользователь открывает Mini App и сразу видит богатый разбор.
