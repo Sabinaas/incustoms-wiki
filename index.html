@@ -484,6 +484,38 @@ t_btn.onclick=async()=>{
   }
 };
 
+// Наименование в ТН ВЭД — склейка всех уровней иерархии, и у соседних кодов совпадает почти всё
+// начало: список выглядел как одинаковые абзацы на 400 знаков. Срезаем общее начало по словам и
+// показываем то, чем коды ОТЛИЧАЮТСЯ (тот же приём, что в боте — keyboards.distinct_labels).
+function distinctLabels(items,width=90){
+  const words=items.map(i=>String(i.name||'').split(/\s+/).filter(Boolean));
+  const cut=s=>s.length>width?s.slice(0,width).replace(/\s+\S*$/,'')+'…':s;
+  if(words.length<2) return words.map(w=>cut(w.join(' ')));
+  const common=(a,b)=>{let k=0;while(k<Math.min(a.length,b.length)&&a[k]===b[k])k++;return k};
+  const codes=items.map(i=>String(i.code||''));
+  const out=words.map((w,i)=>{
+    // Общее начало считаем среди кодов ОДНОЙ длины: в выдаче бывают 6- и 10-значные,
+    // у них названия разной длины, и «общее для всех» схлопывалось бы до нуля.
+    let peers=words.filter((_,j)=>j!==i&&codes[j].length===codes[i].length);
+    if(!peers.length) peers=words.filter((_,j)=>j!==i);
+    let start=peers.length?Math.min(...peers.map(o=>common(w,o))):0;
+    start=Math.min(start,Math.max(w.length-1,0));
+    const t=w.slice(start).join(' ').replace(/^[\s,;:—-]+|[\s,;:—-]+$/g,'')||w.join(' ');
+    return (start?'…':'')+cut(t);
+  });
+  // Второй проход: если общее начало длиннее подписи, различие не влезло и строки совпали.
+  // Для таких сдвигаем старт к расхождению с БЛИЖАЙШИМ соседом — там и сидит отличие.
+  const dup=new Set(out.filter(x=>out.filter(y=>y===x).length>1));
+  words.forEach((w,i)=>{
+    if(!dup.has(out[i])) return;
+    const others=words.filter((_,j)=>j!==i);
+    let start=others.length?Math.max(...others.map(o=>common(w,o))):0;
+    start=Math.min(start,Math.max(w.length-1,0));
+    const t=w.slice(start).join(' ').replace(/^[\s,;:—-]+|[\s,;:—-]+$/g,'')||w.join(' ');
+    out[i]=(start?'…':'')+cut(t);
+  });
+  return out;
+}
 const fmt=n=>Math.round(n).toLocaleString('ru-RU').replace(/,/g,' ');
 const debounce=(f,ms)=>{let h;return(...a)=>{clearTimeout(h);h=setTimeout(()=>f(...a),ms)}};
 async function api(path){const r=await fetch(API+path);return r.json()}
@@ -611,8 +643,9 @@ const runCodeSearch=async()=>{
   k_cnt.textContent=d.items.length
     ? (_total>d.items.length ? d.items.length+' / '+_total : ''+_total)
     : L.empty;
+  const _lbl=distinctLabels(d.items);
   k_list.innerHTML=d.items.map((i,idx)=>
-    `<div class="item"><div class="term" data-i="${idx}"><span><span class="code">${i.code}</span> <span class="name">${(i.name||'')}</span></span><span class="arrow">›</span></div><div class="body" id="kb${idx}"></div></div>`
+    `<div class="item"><div class="term" data-i="${idx}"><span><span class="code">${i.code}</span>${i.duty?' <b>'+esc(i.duty)+'</b>':''} <span class="name">${esc(_lbl[idx])}</span></span><span class="arrow">›</span></div><div class="body" id="kb${idx}"></div></div>`
   ).join('');
   k_list.querySelectorAll('.term').forEach(t=>t.onclick=async()=>{
     const it=t.closest('.item'); it.classList.toggle('open');
@@ -646,8 +679,9 @@ const runCodeSearch=async()=>{
         if(box.dataset.done){box.innerHTML='';box.dataset.done='';return;}
         box.dataset.done='1'; box.textContent='…';
         const ch=await api('/api/children?code='+e.target.dataset.code);
+        const _sl=distinctLabels(ch.items||[]);
         box.innerHTML=(ch.items||[]).map((x,j)=>
-          `<div class="term subc" data-code="${x.code}" style="padding:5px 0"><span><span class="code">${x.code}</span> <span class="name">${(x.name||'')}</span></span><span class="arrow">›</span></div><div class="sbody" id="sb${j}"></div>`
+          `<div class="term subc" data-code="${x.code}" style="padding:5px 0"><span><span class="code">${x.code}</span>${x.duty?' <b>'+esc(x.duty)+'</b>':''} <span class="name">${esc(_sl[j])}</span></span><span class="arrow">›</span></div><div class="sbody" id="sb${j}"></div>`
         ).join('')||'—';
         box.querySelectorAll('.subc').forEach(s=>s.onclick=async()=>{
           const sb=s.nextElementSibling;
