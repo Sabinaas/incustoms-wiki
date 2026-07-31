@@ -528,7 +528,7 @@ const csug=debounce(async()=>{
   // и показывала прошлый код, пока в поле стоял новый (тест 29.07.2026).
   if(/^\d[\d\s]{3,}$/.test(q)){pickedCode=q.replace(/\s/g,'');c_picked.textContent='Код: '+pickedCode;c_sug.style.display='none';return}
   if(q.length<2){pickedCode=null;c_picked.textContent='';c_sug.style.display='none';return}
-  const d=await api('/api/search?q='+encodeURIComponent(q));
+  const d=await api('/api/search?q='+encodeURIComponent(q)+'&lang='+lang);
   c_sug.innerHTML=d.items.slice(0,6).map(i=>`<div data-c="${i.code}">${i.code} — ${(i.name||'').slice(0,60)}</div>`).join('');
   c_sug.style.display=d.items.length?'block':'none';
   c_sug.querySelectorAll('div').forEach(el=>el.onclick=()=>{
@@ -636,7 +636,7 @@ c_go.onclick=async()=>{
 let k_limit=30;                       // сколько показываем; «показать ещё» поднимает лимит
 const runCodeSearch=async()=>{
   const q=k_q.value.trim(); if(q.length<2){k_list.innerHTML='';k_cnt.textContent='';return}
-  const d=await api('/api/search?q='+encodeURIComponent(q)+'&limit='+k_limit);
+  const d=await api('/api/search?q='+encodeURIComponent(q)+'&limit='+k_limit+'&lang='+lang);
   // Показываем НАЙДЕНО/ПОКАЗАНО: раньше выводилась длина выдачи, и человек думал, что видит всё,
   // хотя список молча обрезался (аудит FREE-04).
   const _total=(d.total!=null?d.total:d.items.length);
@@ -678,7 +678,7 @@ const runCodeSearch=async()=>{
         const box=bd.querySelector('.subs');
         if(box.dataset.done){box.innerHTML='';box.dataset.done='';return;}
         box.dataset.done='1'; box.textContent='…';
-        const ch=await api('/api/children?code='+e.target.dataset.code);
+        const ch=await api('/api/children?code='+e.target.dataset.code+'&lang='+lang);
         const _sl=distinctLabels(ch.items||[]);
         box.innerHTML=(ch.items||[]).map((x,j)=>
           `<div class="term subc" data-code="${x.code}" style="padding:5px 0"><span><span class="code">${x.code}</span>${x.duty?' <b>'+esc(x.duty)+'</b>':''} <span class="name">${esc(_sl[j])}</span></span><span class="arrow">›</span></div><div class="sbody" id="sb${j}"></div>`
@@ -750,7 +750,7 @@ const psug=debounce(async()=>{
   const q=p_q.value.trim();
   if(/^\d[\d\s]{3,}$/.test(q)){pPicked=q.replace(/\s/g,'');p_sug.style.display='none';permLoad(pPicked);return}
   if(q.length<2){p_sug.style.display='none';return}
-  const d=await api('/api/search?q='+encodeURIComponent(q));
+  const d=await api('/api/search?q='+encodeURIComponent(q)+'&lang='+lang);
   p_sug.innerHTML=d.items.slice(0,6).map(i=>`<div data-c="${i.code}">${i.code} — ${esc(i.name).slice(0,60)}</div>`).join('');
   p_sug.style.display=d.items.length?'block':'none';
   p_sug.querySelectorAll('div').forEach(el=>el.onclick=()=>{
