@@ -17,7 +17,7 @@ from __future__ import annotations
 import pathlib
 import sys
 
-BOT = "https://t.me/incustom_helper_bot"
+BOT = "https://t.me/incustoms_helper_bot"
 PAY = BOT + "?start=pay_unlim"
 OUT = pathlib.Path(__file__).resolve().parent / "unlim.html"
 
@@ -49,7 +49,7 @@ def main() -> None:
     s = src.read_text(encoding="utf-8")
 
     # Только ПЕРВАЯ ссылка — это кнопка «Подключить Unlim». Вторая («задать вопрос») и подпись
-    # @incustom_helper_bot в подвале должны вести в обычный чат, а не на оплату.
+    # @incustoms_helper_bot в подвале должны вести в обычный чат, а не на оплату.
     if s.count(BOT) < 1:
         raise SystemExit("в презентации не найдена ссылка на бота — проверьте сборку")
     s = s.replace(BOT, PAY, 1)
