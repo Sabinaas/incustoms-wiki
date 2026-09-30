@@ -591,7 +591,6 @@ c_go.onclick=async()=>{
   if(d.warnings&&d.warnings.length)
     h+='<div class="line" style="color:#d33;font-weight:600">⚠️ '+d.warnings.join(' ')+'</div>';
   // То, что знает чат: риск КТС (занижение цены), разрешительные, маркировка.
-  if(d.kts&&d.kts.note) h+='<div class="line" style="color:#d33;font-weight:600">'+d.kts.note+'</div>';
   if(d.permits&&d.permits.length) h+='<div class="hint">📋 Разрешительные: '+d.permits.map(p=>p.permit+(p.npa?' ('+p.npa+')':'')).join('; ')+'</div>';
   if(d.marking&&d.marking.requirement) h+='<div class="hint">🏷 Маркировка: '+d.marking.requirement+(d.marking.npa?' ('+d.marking.npa+')':'')+'</div>';
   // Утилизационный сбор (для транспорта): отдельной строкой + общий итог.
