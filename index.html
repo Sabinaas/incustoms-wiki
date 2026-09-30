@@ -520,7 +520,7 @@ const fmt=n=>Math.round(n).toLocaleString('ru-RU').replace(/,/g,' ');
 const debounce=(f,ms)=>{let h;return(...a)=>{clearTimeout(h);h=setTimeout(()=>f(...a),ms)}};
 async function api(path){const _id=(tg&&tg.initData)||'';const sep=path.includes('?')?'&':'?';const r=await fetch(API+path+(_id?sep+'initData='+encodeURIComponent(_id):''));return r.json()}
 // Ставки по коду — 5 бесплатных просмотров на аккаунт (общий счётчик с ботом); дальше — замок.
-function lockedHtml(){const t={uz:'🔒 Kod bo‘yicha stavkalar — Unlim’da (5 ta bepul ko‘rish ishlatilgan).',en:'🔒 Rates by code are in Unlim (5 free views used).'}[lang]||'🔒 Ставки по коду — в Unlim (5 бесплатных просмотров использованы).';return '<div class="hint">'+t+' <a href="https://t.me/incustoms_helper_bot?start=pay_unlim" target="_blank">Unlim →</a></div>'}
+function lockedHtml(r){if(r&&r.reason==='no_user'){const s={uz:'Stavkalarni ko‘rish uchun avval botni ishga tushiring (/start) va ilovani undan oching.',en:'To see rates, start the bot first (/start) and open the app from it.'}[lang]||'Чтобы видеть ставки, сначала запустите бота (/start) и откройте приложение из него.';return '<div class="hint">'+s+' <a href="https://t.me/incustoms_helper_bot" target="_blank">Открыть бота →</a></div>'}const t={uz:'🔒 Kod bo‘yicha stavkalar — Unlim’da (5 ta bepul ko‘rish ishlatilgan).',en:'🔒 Rates by code are in Unlim (5 free views used).'}[lang]||'🔒 Ставки по коду — в Unlim (5 бесплатных просмотров использованы).';return '<div class="hint">'+t+' <a href="https://t.me/incustoms_helper_bot?start=pay_unlim" target="_blank">Unlim →</a></div>'}
 
 // ---- РАСЧЁТ ----
 let pickedCode=null;
@@ -655,7 +655,7 @@ const runCodeSearch=async()=>{
       bd.dataset.done='1'; bd.textContent='…';
       const code=d.items[t.dataset.i].code;
       const rd=await api('/api/rates?code='+code);
-      if(rd.locked){bd.innerHTML=lockedHtml();return}
+      if(rd.locked){bd.innerHTML=lockedHtml(rd);return}
       const R=(rd.rates)||{}; const du=R.duty||{};
       // Паритет с ботом: акциз, органы по коду и основание с датой сверки. Раньше приложение
       // показывало только пошлину и НДС, а внизу стояло «Ориентировочно, точно — в чате бота»,
@@ -690,7 +690,7 @@ const runCodeSearch=async()=>{
           if(sb.dataset.done){sb.innerHTML='';sb.dataset.done='';return;}
           sb.dataset.done='1'; sb.textContent='…';
           const r2=await api('/api/rates?code='+s.dataset.code);
-          if(r2.locked){sb.innerHTML=lockedHtml();return}
+          if(r2.locked){sb.innerHTML=lockedHtml(r2);return}
           const du2=(r2.rates&&r2.rates.duty)||{};
           sb.innerHTML=`<div class="line"><span>Пошлина</span><b>${du2.label||(du2.advalorem_pct??'—')+'%'}</b></div>`+
             `<div class="line"><span>НДС</span><b>${r2.rates&&r2.rates.vat_exempt?'освобождён':((r2.rates&&r2.rates.vat_pct)||12)+'%'}</b></div>`;
