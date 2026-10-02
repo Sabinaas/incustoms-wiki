@@ -674,6 +674,7 @@ const runCodeSearch=async()=>{
         `<div class="line"><span>НДС</span><b>${R.vat_exempt?'освобождён':((R.vat_pct)||12)+'%'}</b></div>`+
         bodiesHtml+
         `<button class="subbtn" data-code="${code}" style="margin:6px 0;padding:6px 12px;border:1px solid var(--brand-soft,#e2f5e9);border-radius:10px;background:transparent;color:var(--brand,#16a34a);font-weight:600;cursor:pointer">📂 Подкоды группы</button>`+
+        (rd.pending||[]).map(p=>`<div class="hint" style="color:#b45309">⚠️ ${esc(p.title)}: ставка может быть ещё не обновлена</div>`).join('')+
         `<div class="subs"></div>`+
         `<div class="hint">${npa.length?'Основание: '+esc(npa.join(', ')):''}${CB.checked_at?' · органы сверены '+esc(CB.checked_at):''}</div>`;
       bd.querySelector('.subbtn').onclick=async(e)=>{
